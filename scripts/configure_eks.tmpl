@@ -1,0 +1,22 @@
+#!/bin/bash
+
+CLUSTER_NAME=${cluster_name}
+AWS_REGION=${region}
+
+if [ -z "$CLUSTER_NAME" ] || [ -z $AWS_REGION ]; then
+    echo "Usage: needs Cluster name and region"
+    exit 1
+fi
+
+echo "Configuring kubectl for cluster: $CLUSTER_NAME in region: $AWS_REGION"
+
+aws eks update-kubeconfig \
+    --region $AWS_REGION \
+    --name $CLUSTER_NAME \
+    --kubeconfig ~/.kube/config
+
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+CONTEXT_ARN="arn:aws:eks:$AWS_REGION:$ACCOUNT_ID:cluster/$CLUSTER_NAME"
+
+echo "Using context ARN: $CONTEXT_ARN"
+kubectl config use-context $CONTEXT_ARN

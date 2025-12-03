@@ -1,0 +1,7 @@
+.vs/
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.8.0/windows_386/LICENSE.txt
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.8.0/windows_386/terraform-provider-aws_v6.8.0_x5.exe
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.9.0/windows_386/LICENSE.txt
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.9.0/windows_386/terraform-provider-aws_v6.9.0_x5.exe
+.terraform/providers/
+.terraform/

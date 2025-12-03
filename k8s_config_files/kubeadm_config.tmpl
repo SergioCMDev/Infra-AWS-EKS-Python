@@ -1,0 +1,53 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: __PRIVATE_IP__
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/containerd/containerd.sock
+  name: __NODE_NAME__
+  kubeletExtraArgs:
+    - name: cloud-provider
+      value: external
+
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+clusterName: my-cluster
+kubernetesVersion: v1.33.0
+controlPlaneEndpoint: __PRIVATE_IP__
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+apiServer:
+  extraArgs:
+    - name: authorization-mode
+      value: Node,RBAC
+    - name: bind-address
+      value: 0.0.0.0
+    - name: secure-port
+      value: "6443"
+  certSANs:
+    - "__PRIVATE_IP__"
+    - "__NODE_NAME__"
+    - "${nlb_endpoint}"
+    - "localhost"
+    - "127.0.0.1"
+scheduler: {}
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    extraArgs:
+      - name: listen-metrics-urls
+        value: "http://127.0.0.1:2381"
+certificatesDir: /etc/kubernetes/pki
+
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+clusterDNS:
+  - "10.96.0.10"
+clusterDomain: "cluster.local"
+serverTLSBootstrap: true
+rotateCertificates: true
