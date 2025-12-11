@@ -7,7 +7,7 @@
 
 ## Descripción
 
-Proyecto de infraestructura como código (IaC) que despliega un clúster **Amazon EKS** completo utilizando **Terraform**, con capacidades de despliegue **Blue-Green** mediante GitHub Actions para una aplicación web Python.
+Proyecto de infraestructura como código (IaC) que despliega un clúster **Amazon EKS** completo utilizando **Terraform**, con capacidades de despliegue **Blue-Green** mediante GitHub Actions para una aplicación web Python (https://github.com/SergioCMDev/PythonWebForIAC/.
 
 Este proyecto demuestra las mejores prácticas de DevOps, incluyendo automatización completa de infraestructura, CI/CD sin interrupciones y arquitectura cloud-native escalable.
 
