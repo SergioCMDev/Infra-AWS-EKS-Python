@@ -1,0 +1,37 @@
+# .pre-commit-config.yaml
+repos:
+  # Bash hooks
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
+
+  # Terraform hooks
+  # - repo: https://github.com/terraform-linters/tflint
+  #   rev: v0.61.0
+  #   hooks:
+  #     - id: tflint
+  #       args: ["--config", ".tflint.hcl"]
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: check-json
+        exclude: '(^|/)tsconfig.*\.json$'
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+
+  # Conventional Commits
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [] # Opcional: [--force-scope, --strict] para más validación

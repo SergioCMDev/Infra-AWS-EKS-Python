@@ -4,10 +4,11 @@ exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 echo "=== Actualizando sistema 1 ==="
 timeout 10m dnf update -y
+exit_code=$?
 
-if [ $? -eq 124 ]; then
+if [ "$exit_code" -eq 124 ]; then
     echo "Actualización cancelada por timeout, continuando..."
-elif [ $? -eq 0 ]; then
+elif [ "$exit_code" -eq 0 ]; then
     echo "Actualización completada exitosamente"
 else
     echo "Error en la actualización, continuando..."

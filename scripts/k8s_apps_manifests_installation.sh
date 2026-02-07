@@ -1,13 +1,20 @@
 #!/bin/bash
+# Variables inyectadas desde otros scripts:
+# shellcheck disable=SC2154,SC1090
+# - S3_Bucket_Name
+# - K8S_S3_Manifests_Folder
+# - initial_route_k8s_manifests
+# - lib_file
+
 source $lib_file
 
 log "====== Empezamos k8s_apps_manifests_installation, descargamos archivos necesarios de S3 ======"
-aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/deployment_blue.yaml $initial_route_k8s_manifests/deployment_blue.yaml  
-aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/deployment_green.yaml $initial_route_k8s_manifests/deployment_green.yaml  
-aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/service_blue.yaml $initial_route_k8s_manifests/service_blue.yaml  
-aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/service_green.yaml $initial_route_k8s_manifests/service_green.yaml  
+aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/deployment_blue.yaml $initial_route_k8s_manifests/deployment_blue.yaml
+aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/deployment_green.yaml $initial_route_k8s_manifests/deployment_green.yaml
+aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/service_blue.yaml $initial_route_k8s_manifests/service_blue.yaml
+aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/service_green.yaml $initial_route_k8s_manifests/service_green.yaml
 
-aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/ingress.yaml $initial_route_k8s_manifests/ingress.yaml  
+aws s3 cp s3://$S3_Bucket_Name/$K8S_S3_Manifests_Folder/ingress.yaml $initial_route_k8s_manifests/ingress.yaml
 
 deployment_blue="$initial_route_k8s_manifests/deployment_blue.yaml"
 deployment_green="$initial_route_k8s_manifests/deployment_green.yaml"
@@ -29,7 +36,7 @@ while true; do
     ENDPOINTS=$(kubectl --kubeconfig=/home/ec2-user/.kube/config get endpointslice -n kube-system \
         -l kubernetes.io/service-name=aws-load-balancer-webhook-service \
         -o jsonpath='{.items[*].endpoints[*].addresses[*]}' 2>/dev/null)
-    
+
     ENDPOINT_COUNT=$(echo "$ENDPOINTS" | wc -w)
     echo "Detected $ENDPOINT_COUNT endpoints"
     if [ "$ENDPOINT_COUNT" -gt 0 ]; then
@@ -37,7 +44,7 @@ while true; do
         echo "IPs: $ENDPOINTS"
         break
     fi
-    
+
     echo "Esperando endpoints... (actualmente: 0)"
     sleep 5
 done

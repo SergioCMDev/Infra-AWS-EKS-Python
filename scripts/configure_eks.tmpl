@@ -1,4 +1,8 @@
 #!/bin/bash
+# Variables inyectadas por Terraform:
+# shellcheck disable=SC2154
+# - cluster_name
+# - region
 
 CLUSTER_NAME=${cluster_name}
 AWS_REGION=${region}

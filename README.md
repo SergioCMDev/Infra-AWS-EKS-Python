@@ -51,7 +51,7 @@ Este proyecto demuestra las mejores prácticas de DevOps, incluyendo automatizac
 - **Infraestructura como Código**: Todo el stack definido en Terraform con módulos reutilizables
 - **Despliegue Blue-Green**: Zero-downtime deployments con rollback instantáneo
 - **CI/CD Automatizado**: Pipeline completo con GitHub Actions
-- **Seguridad Avanzada**: 
+- **Seguridad Avanzada**:
   - Security groups granulares
   - OIDC para autenticación con AWS
   - IAM roles con mínimos privilegios

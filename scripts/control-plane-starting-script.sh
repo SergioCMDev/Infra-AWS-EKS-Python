@@ -1,5 +1,10 @@
 #!/bin/bash
-# set -xe 
+# shellcheck disable=SC2154,SC1090
+set -e
+# Variables inyectadas por Terraform:
+# - s3_bucket_name, k8s_role, nlb_endpoint, target_group_arn
+# - kubernetes_version, cluster_name, region, vpcId
+
 export K8S_S3_Manifests_Folder="k8s_manifests"
 export S3_Scripts_Folder="scripts"
 export S3_Config_Files="k8s_config_files"
@@ -20,7 +25,7 @@ export VPC_ID=${vpcId}
 mkdir -p $initial_route
 
 echo "====== Empezamos control plane init, descargamos archivos necesarios de S3 ======"
-aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/lib.sh $initial_route/$S3_Scripts_Folder/lib.sh 
+aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/lib.sh $initial_route/$S3_Scripts_Folder/lib.sh
 export lib_file="$initial_route/$S3_Scripts_Folder/lib.sh"
 source $lib_file
 

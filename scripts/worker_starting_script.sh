@@ -1,5 +1,10 @@
 #!/bin/bash
+# shellcheck disable=SC2154
 set -e
+# Variables inyectadas por Terraform:
+# - kubernetes_version
+# - s3_bucket_name
+# - nlb_endpoint
 
 export S3_Scripts_Folder="scripts"
 export S3_Config_Files="k8s_config_files"
@@ -17,8 +22,9 @@ mkdir -p $initial_route
 
 
 echo "===== Empezamos worker starting script====="
-aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/lib.sh $initial_route/$S3_Scripts_Folder/lib.sh  
+aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/lib.sh $initial_route/$S3_Scripts_Folder/lib.sh
 export lib_file="$initial_route/$S3_Scripts_Folder/lib.sh"
+# shellcheck disable=SC1090
 source $lib_file
 
 log "====== Updating OS======"
@@ -29,7 +35,7 @@ dnf upgrade -y --releasever=2023.9.20250929
 
 dnf install -y iproute iptables
 
-aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/k8s_basic_inst.sh $initial_route/$S3_Scripts_Folder/k8s_basic_inst.sh         
+aws s3 cp s3://$S3_Bucket_Name/$S3_Scripts_Folder/k8s_basic_inst.sh $initial_route/$S3_Scripts_Folder/k8s_basic_inst.sh
 aws s3 cp s3://$S3_Bucket_Name/$S3_Config_Files/kubelet-config.yaml /var/lib/kubelet/kubelet-config.yaml
 k8s_basic_inst="$initial_route/$S3_Scripts_Folder/k8s_basic_inst.sh"
 sudo chmod +x $k8s_basic_inst
@@ -50,9 +56,9 @@ sysctl --system
 
 
 log "====== Getting Private IP ======"
-private_ip=$(get_metadata "local-ipv4")
-export PRIVATE_IP=$private_ip
-IP_TO_CHECK=$(aws ssm get-parameter --name "master-ip" --with-decryption --query "Parameter.Value"  --output text)
+# private_ip=$(get_metadata "local-ipv4")
+# export PRIVATE_IP=$private_ip
+# IP_TO_CHECK=$(aws ssm get-parameter --name "master-ip" --with-decryption --query "Parameter.Value"  --output text)
 
 log "====== Executing k8s_basic_inst ======"
 $k8s_basic_inst
@@ -62,20 +68,20 @@ while ! wait_for_apiserver || ! wait_for_updated_ssm_data; do
     sleep 10
 done
 
-TOKEN=$(aws ssm get-parameter --name "k8s-token" --with-decryption --query "Parameter.Value"  --output text) 
-CERT_KEY=$(aws ssm get-parameter --name "k8s-cert-key" --with-decryption --query "Parameter.Value"  --output text) 
-CA_HASH=$(aws ssm get-parameter --name "k8s-ca-hash" --with-decryption --query "Parameter.Value"  --output text)  
-        
+TOKEN=$(aws ssm get-parameter --name "k8s-token" --with-decryption --query "Parameter.Value"  --output text)
+# CERT_KEY=$(aws ssm get-parameter --name "k8s-cert-key" --with-decryption --query "Parameter.Value"  --output text)
+# CA_HASH=$(aws ssm get-parameter --name "k8s-ca-hash" --with-decryption --query "Parameter.Value"  --output text)
+
 
 # log "====== SSM Values ======"
 # echo "TOKEN: $TOKEN"
-# echo "CERT_KEY: $CERT_KEY" 
+# echo "CERT_KEY: $CERT_KEY"
 # echo "CA_HASH: $CA_HASH"
-    
+
 kubeadm join $NLB_ENDPOINT:6443 --token $TOKEN --discovery-token-ca-cert-hash sha256:$CA_HASH
 sudo cp /var/lib/kubelet/kubeadm-flags.env /var/lib/kubelet/kubeadm-flags.env.bak
 
 EXISTING_ARGS=$(sed -n 's/^KUBELET_KUBEADM_ARGS=//p' /var/lib/kubelet/kubeadm-flags.env | tr -d '"')
-NEW_ARGS="$${EXISTING_ARGS} --config=/var/lib/kubelet/kubelet-config.yaml"
-echo "KUBELET_KUBEADM_ARGS=\"$${NEW_ARGS}\"" > /var/lib/kubelet/kubeadm-flags.env
+NEW_ARGS="${EXISTING_ARGS} --config=/var/lib/kubelet/kubelet-config.yaml"
+echo "KUBELET_KUBEADM_ARGS=\"${NEW_ARGS}\"" > /var/lib/kubelet/kubeadm-flags.env
 log "====== Worker joined ======"

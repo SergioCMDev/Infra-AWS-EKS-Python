@@ -29,7 +29,7 @@ resource "aws_iam_role_policy_attachment" "cluster_eks_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
-# ============================================= 
+# =============================================
 # SSM ENDPOINTS
 # =============================================
 

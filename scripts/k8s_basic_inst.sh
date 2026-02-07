@@ -1,4 +1,10 @@
 #!/bin/bash
+# Variables inyectadas desde otros scripts:
+# shellcheck disable=SC2154,SC1090
+# - lib_file
+# - S3_Bucket_Name
+# - S3_Config_Files
+# - initial_route
 
 source $lib_file
 
@@ -7,14 +13,14 @@ log "====== Starting k8s basic installation ======"
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 sleep 30
 
-set -xe 
+set -xe
 
 log "====== Disable swap ======"
 sudo swapoff -a
 sudo sed -i '/swap/d' /etc/fstab
 
 log "====== Disable SELinux ======"
-setenforce 0 
+setenforce 0
 sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
 log "======Load k8s kernel modules ======"
@@ -44,7 +50,7 @@ log "======Configuring containerd ======"
 mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml
 
-log "======Add Kubernetes repo for RPM ======" 
+log "======Add Kubernetes repo for RPM ======"
 aws s3 cp s3://$S3_Bucket_Name/$S3_Config_Files/kubernetes.repo /etc/yum.repos.d/kubernetes.repo
 
 log "========= Copying crictl to allow download images from containerd endpoint ==========="

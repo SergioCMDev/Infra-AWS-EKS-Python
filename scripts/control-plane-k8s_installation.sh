@@ -1,4 +1,12 @@
 #!/bin/bash
+# shellcheck disable=SC2154,SC1090
+# Variables inyectadas desde otros scripts:
+# - lib_file
+# - S3_Bucket_Name
+# - S3_Config_Files
+# - initial_route_k8s_manifests
+# - initial_route
+
 CONFIG_FILE=$1
 USER_EC2=ec2-user
 
@@ -27,7 +35,7 @@ if [[ $K8S_ROLE == "init-master" ]]; then
         log "====== Reconfiguring cluster to use NLB======"
 
         kubectl config set-cluster kubernetes --server=https://$NLB_ENDPOINT:6443
-        
+
         log "====== Cluster successfully configured with HA endpoint ======"
     fi
 
@@ -42,7 +50,7 @@ if [[ $K8S_ROLE == "init-master" ]]; then
     aws ssm put-parameter --name "master_certs_ok" --type "String" --value "1" --overwrite
 
     aws ssm put-parameter --name "k8s-token" --type "SecureString"  --value "$TOKEN" --overwrite
-    aws ssm put-parameter --name "k8s-cert-key" --type "SecureString" --value "$CERT_KEY" --overwrite  
+    aws ssm put-parameter --name "k8s-cert-key" --type "SecureString" --value "$CERT_KEY" --overwrite
     aws ssm put-parameter --name "k8s-ca-hash" --type "SecureString" --value "$CA_HASH" --overwrite
 
     aws ssm put-parameter --name "master_certs_ok" --type "String" --value "0" --overwrite
@@ -52,7 +60,7 @@ if [[ $K8S_ROLE == "init-master" ]]; then
     sudo chmod 700 get_helm.sh
     sudo ./get_helm.sh
     rm get_helm.sh
-    
+
     log "====== Añadimos repos de Helm ======"
     helm repo add eks https://aws.github.io/eks-charts
     helm repo add kubelet-csr-approver https://postfinance.github.io/kubelet-csr-approver
@@ -77,12 +85,12 @@ if [[ $K8S_ROLE == "init-master" ]]; then
     # log "====== Instalamos Configuracion Calico ======"
     # kubectl apply -f $calico_inst
 
-    NUM_WORKERS=$(kubectl get nodes | awk 'NR>1 && $3=="<none>"' | wc -l) 
+    NUM_WORKERS=$(kubectl get nodes | awk 'NR>1 && $3=="<none>"' | wc -l)
     log Num Workers: $NUM_WORKERS
     NUM_WORKERS_READY=$(kubectl get nodes | awk 'NR>1 && $3=="<none>" && $2=="Ready"' | wc -l)
     while [ "$NUM_WORKERS_READY" -lt "$NUM_WORKERS" ]; do
         echo "Num Workers Ready: $NUM_WORKERS_READY / $NUM_WORKERS"
-        NUM_WORKERS=$(kubectl get nodes | awk 'NR>1 && $3=="<none>"' | wc -l) 
+        NUM_WORKERS=$(kubectl get nodes | awk 'NR>1 && $3=="<none>"' | wc -l)
 
         NUM_WORKERS_READY=$(kubectl get nodes | awk 'NR>1 && $3=="<none>" && $2=="Ready"' | wc -l)
         log "Esperando a que todos los nodos workers estén Ready..."
@@ -97,7 +105,7 @@ if [[ $K8S_ROLE == "init-master" ]]; then
         echo "Labeling worker node: $node"
         kubectl label node $node node-role.kubernetes.io/worker=""
     done
-    
+
 
     log "====== Instalamos Cert-Manager ======"
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
@@ -133,15 +141,15 @@ else
         sleep 10
     done
 
-    TOKEN=$(aws ssm get-parameter --name "k8s-token" --with-decryption --query "Parameter.Value"  --output text) 
-    CERT_KEY=$(aws ssm get-parameter --name "k8s-cert-key" --with-decryption --query "Parameter.Value"  --output text) 
-    CA_HASH=$(aws ssm get-parameter --name "k8s-ca-hash" --with-decryption --query "Parameter.Value"  --output text)  
-       
+    TOKEN=$(aws ssm get-parameter --name "k8s-token" --with-decryption --query "Parameter.Value"  --output text)
+    CERT_KEY=$(aws ssm get-parameter --name "k8s-cert-key" --with-decryption --query "Parameter.Value"  --output text)
+    CA_HASH=$(aws ssm get-parameter --name "k8s-ca-hash" --with-decryption --query "Parameter.Value"  --output text)
+
     # log "====== SSM Values ======"
     # echo "TOKEN: $TOKEN"
-    # echo "CERT_KEY: $CERT_KEY" 
+    # echo "CERT_KEY: $CERT_KEY"
     # echo "CA_HASH: $CA_HASH"
-    
+
     kubeadm join $IP_TO_CHECK:6443 --token $TOKEN --discovery-token-ca-cert-hash sha256:$CA_HASH --control-plane --certificate-key $CERT_KEY --v=5
     log "====== Worker joined ======"
 

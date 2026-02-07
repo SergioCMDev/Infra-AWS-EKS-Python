@@ -1,14 +1,17 @@
 #!/bin/bash
-set -e 
+# shellcheck disable=SC2154
+set -e
+# Variables inyectadas por Terraform y base64 encoding:
+# - runner_version, repo_name, repo_user, token
+# - runner_name, runner_labels, blue_green_updater_script, configure_eks_script
 
 log(){
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a /var/log/k8s-init.log        
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a /var/log/k8s-init.log
 }
 
 
 echo "====== Definimos variables ======"
 RUNNER_VERSION=${runner_version}
-S3_Bucket_Name=${s3_bucket_name}
 REPO_NAME=${repo_name}
 REPO_USER=${repo_user}
 TOKEN=${token}
@@ -83,7 +86,7 @@ mkdir -p actions-runner && cd actions-runner
 
 curl -o actions-runner-linux-x64-$RUNNER_VERSION.tar.gz -L https://github.com/actions/runner/releases/download/v$RUNNER_VERSION/actions-runner-linux-x64-$RUNNER_VERSION.tar.gz # Optional: Validate the hash
 echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  actions-runner-linux-x64-$RUNNER_VERSION.tar.gz" | shasum -a 256 -c # Extract the installer
-       
+
 log "====== Extracting GitHub Actions Runner  ======"
 tar xzf ./actions-runner-linux-x64-$RUNNER_VERSION.tar.gz # Install dependencies
 rm actions-runner-linux-x64-$RUNNER_VERSION.tar.gz

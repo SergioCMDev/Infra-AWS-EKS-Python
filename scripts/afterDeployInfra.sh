@@ -1,16 +1,10 @@
 #!/bin/bash
-# shellcheck disable=SC2154
 set -e
-# Variables inyectadas por Terraform:
-# - cluster_name
-# - region
-# - vpc_id
-# - rol_github_runner
 
-CLUSTER_NAME=${cluster_name}
-REGION=${region}
-VPC_ID=${vpc_id}
-ROL_GITHUB_RUNNER=${rol_github_runner}
+CLUSTER_NAME=mi-cluster
+REGION=eu-west-3
+VPC_ID=vpc-00ce1bd466148a401
+ROL_GITHUB_RUNNER=ec2_github_runner_role
 
 echo "Updating kubeconfig for cluster $CLUSTER_NAME in region $REGION"
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
