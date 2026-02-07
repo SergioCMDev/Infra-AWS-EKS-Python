@@ -5,12 +5,10 @@ set -e
 # - cluster_name
 # - region
 # - vpc_id
-# - rol_github_runner
 
 CLUSTER_NAME=${cluster_name}
 REGION=${region}
 VPC_ID=${vpc_id}
-ROL_GITHUB_RUNNER=${rol_github_runner}
 
 echo "Updating kubeconfig for cluster $CLUSTER_NAME in region $REGION"
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
@@ -27,11 +25,3 @@ kubectl apply -f k8s_manifests/deployment_green.yaml
 kubectl apply -f k8s_manifests/service_blue.yaml
 kubectl apply -f k8s_manifests/service_green.yaml
 kubectl apply -f k8s_manifests/ingress.yaml
-
-echo "Mapping IAM role $ROL_GITHUB_RUNNER to Kubernetes user github-runner with system:masters group"
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-eksctl create iamidentitymapping   --cluster $CLUSTER_NAME  \
- --region $REGION \
- --arn arn:aws:iam::$ACCOUNT_ID:role/$ROL_GITHUB_RUNNER  \
- --group system:masters  \
- --username github-runner
