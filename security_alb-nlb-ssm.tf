@@ -63,14 +63,3 @@ resource "aws_vpc_security_group_ingress_rule" "ssm_from_workers_https" {
   to_port     = 443
   ip_protocol = "tcp"
 }
-
-resource "aws_vpc_security_group_ingress_rule" "ssm_from_github_worker_https" {
-  security_group_id            = aws_security_group.ssm_endpoints_sg.id
-  referenced_security_group_id = aws_security_group.github_runner_sg.id
-
-  description = "Allow HTTPS traffic from github runner to VPC Endpoints"
-
-  from_port   = 443
-  to_port     = 443
-  ip_protocol = "tcp"
-}

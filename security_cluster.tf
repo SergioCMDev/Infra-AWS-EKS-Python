@@ -37,14 +37,3 @@ resource "aws_vpc_security_group_egress_rule" "cluster_egress" {
     Name = "cluster_egress-egress"
   }
 }
-
-resource "aws_vpc_security_group_ingress_rule" "cluster_eks_from_github_runner" {
-  security_group_id            = aws_security_group.cluster_eks.id
-  referenced_security_group_id = aws_security_group.github_runner_sg.id
-
-  description = "Allow conection from github runner"
-
-  from_port   = 443
-  to_port     = 443
-  ip_protocol = "tcp"
-}
