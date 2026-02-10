@@ -52,6 +52,7 @@ resource "aws_iam_role_policy" "ec2_workers_policy" {
           "ec2:DescribeInstances",
           "elasticloadbalancing:DescribeListenerAttributes",
           "ec2:DescribeNetworkInterfaces",
+          "ecr:Pull"
         ],
         "Resource" : "*"
       }

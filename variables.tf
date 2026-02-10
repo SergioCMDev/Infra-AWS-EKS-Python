@@ -8,13 +8,10 @@ locals {
   instance_type                   = "t3.medium"
   bucket_name                     = "my-terraform-project-bucket-aws-tokio-2"
   cluster_name                    = "mi-cluster"
-  alb_controller_version          = "v2.7.2"
   scripts_folder                  = "scripts"
   k8s_python_web_manifests_folder = "k8s_manifests/apps"
-  repo_name                       = "PythonWebForIAC"
-  repo_user                       = "SergioCMDev"
+  repo_name                       = "SergioCMDev/PythonWebForIAC"
   eks_version                     = "1.33"
-  ami_image                       = "ami-0a8e052d7bc893af0"
 }
 
 variable "runner_version" {
