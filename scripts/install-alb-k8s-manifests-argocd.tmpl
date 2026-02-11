@@ -7,6 +7,8 @@ set -e
 # - cluster_name
 # - region
 # - vpc_id
+# - AWS_ALB_IAM_ROLE
+# - ARGOCD_ROLE_ARN
 
 CLUSTER_NAME=${cluster_name}
 AWS_REGION=${region}
@@ -36,9 +38,15 @@ echo "Using context ARN: $CONTEXT_ARN"
 kubectl config use-context $CONTEXT_ARN
 
 echo "Applying ALB Service Account manifest..."
-kubectl apply -f k8s_manifests/apps/alb_serviceAccount.yaml
+kubectl apply -f ../k8s_manifests/apps/alb_serviceAccount.yaml
 
-helm install aws-load-balancer-controller eks/aws-load-balancer-controller   \
+echo "Installing ALB Controller in $CLUSTER_NAME with role $AWS_ALB_IAM_ROLE in region $AWS_REGION and VPC $VPC_ID ..."
+sleep 3
+#En caso de querer que añada un serviceAccount, añadir estas lineas y quitar la 3 y 4
+  # --set serviceAccount.create=false   \
+  # --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN"
+
+helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller   \
   -n kube-system   \
   --set clusterName=$CLUSTER_NAME \
   --set serviceAccount.create=false   \
@@ -49,14 +57,11 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller   \
 sleep 15
 
 echo "Applying Kubernetes manifests..."
-kubectl apply -f k8s_manifests/apps/deployment_blue.yaml
-kubectl apply -f k8s_manifests/apps/deployment_green.yaml
-kubectl apply -f k8s_manifests/apps/service_blue.yaml
-kubectl apply -f k8s_manifests/apps/service_green.yaml
-kubectl apply -f k8s_manifests/apps/ingress.yaml
-
-echo "Applying ArgoCD Service Account manifest..."
-kubectl apply -f k8s_manifests/apps/argocd_serviceAccount.yaml
+kubectl apply -f ../k8s_manifests/apps/deployment_blue.yaml
+kubectl apply -f ../k8s_manifests/apps/deployment_green.yaml
+kubectl apply -f ../k8s_manifests/apps/service_blue.yaml
+kubectl apply -f ../k8s_manifests/apps/service_green.yaml
+kubectl apply -f ../k8s_manifests/apps/ingress.yaml
 
 echo "Installing ArgoCD"
 chmod +x install-argocd.sh

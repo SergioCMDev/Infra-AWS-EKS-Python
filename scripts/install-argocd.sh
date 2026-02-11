@@ -2,8 +2,13 @@
 # scripts/install-argocd.sh
 set -e
 ROLE_ARN=$1
-echo "Instalando ArgoCD con Helm..."
+if [ -z "$ROLE_ARN" ]; then
+  echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
+  echo "Uso: ./install-argocd.sh <ROLE_ARN>"
+  exit 1
+fi
 
+echo "Instalando ArgoCD con Helm..."
 # 0. Verificar si hay instalación previa y limpiar
 if kubectl get namespace argocd &> /dev/null || kubectl get crd applications.argoproj.io &> /dev/null 2>&1; then
   echo "Detectada instalación previa de ArgoCD"
@@ -33,12 +38,18 @@ kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 # 4. Instalar ArgoCD SIN password custom (se genera automáticamente)
 echo "Instalando ArgoCD (puede tardar varios minutos)..."
 
-helm install argocd argo/argo-cd \
+helm upgrade --install argocd argo/argo-cd \
   --namespace argocd \
   --set server.service.type=LoadBalancer \
   --set server.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing \
   --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN" \
-  --wait \
+  --set server.replicas=2 \
+  --set controller.replicas=1 \
+  --set repoServer.replicas=1 \
+  --set applicationSet.replicas=1 \
+  --set notifications.enabled=false \
+  --set dex.enabled=false \
+  --set redis.enabled=true \
   --timeout 10m
 
 # 5. Esperar a que esté completamente listo

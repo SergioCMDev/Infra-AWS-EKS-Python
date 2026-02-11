@@ -11,3 +11,8 @@ scripts/awscliv2.zip
 awscliv2.zip
 scripts/terraform.tfstate
 .terraform.lock.hcl
+k8s_manifests/apps/ingress.yaml
+k8s_manifests/apps/alb_serviceAccount.yaml
+k8s_manifests/apps/alb_serviceAccount.yaml
+k8s_manifests/apps/alb_serviceAccount.yaml
+scripts/install-alb-k8s-manifests-argocd.sh
