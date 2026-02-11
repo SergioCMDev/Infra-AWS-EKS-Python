@@ -22,7 +22,7 @@ resource "aws_eks_node_group" "workers" {
   instance_types = [local.instance_type]
 
   scaling_config {
-    desired_size = 2
+    desired_size = 4
     min_size     = 1
     max_size     = 8
   }
