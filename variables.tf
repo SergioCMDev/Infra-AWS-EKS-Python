@@ -13,14 +13,3 @@ locals {
   repo_name                       = "SergioCMDev/PythonWebForIAC"
   eks_version                     = "1.33"
 }
-
-variable "runner_version" {
-  description = "GitHub Actions Runner version"
-  type        = string
-  default     = "2.329.0"
-}
-
-variable "runner_labels" {
-  type    = string
-  default = "aws,amazon-linux,production"
-}
