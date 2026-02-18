@@ -1,5 +1,5 @@
 data "template_file" "ingress_tmpl" {
-  template = file("${local.k8s_python_web_manifests_folder}/ingress.tmpl")
+  template = file("${local.k8s_python_web_manifests_templates_folder}/ingress.tmpl")
   vars = {
     sg_alb = aws_security_group.alb_access_sg.id
   }
@@ -29,7 +29,7 @@ resource "local_file" "install_alb_k8s_manifests_argocd_tmpl" {
 
 
 data "template_file" "alb_serviceAccount_tmpl" {
-  template = file("${local.k8s_python_web_manifests_folder}/alb_serviceAccount.tmpl")
+  template = file("${local.k8s_python_web_manifests_templates_folder}/alb_serviceAccount.tmpl")
   vars = {
     cluster_name      = local.cluster_name
     region            = local.region
@@ -39,7 +39,7 @@ data "template_file" "alb_serviceAccount_tmpl" {
 }
 
 resource "local_file" "alb_serviceAccount_tmpl" {
-  filename = "${local.k8s_python_web_manifests_folder}/alb_serviceAccount.yaml"
+  filename = "${local.k8s_python_web_manifests_templates_folder}/alb_serviceAccount.yaml"
   content  = data.template_file.alb_serviceAccount_tmpl.rendered
 }
 
