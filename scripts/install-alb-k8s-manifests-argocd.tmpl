@@ -13,7 +13,7 @@ AWS_REGION=${region}
 VPC_ID=${vpc_id}
 AWS_ALB_IAM_ROLE=${aws_alb_iam_role}
 ARGOCD_ROLE_ARN=${argocd_role_arn}
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$${BASH_SOURCE[0]}")" && pwd)"
 
 echo "script dir $SCRIPT_DIR"
 if [ -z "$CLUSTER_NAME" ] || [ -z $AWS_REGION ]; then
