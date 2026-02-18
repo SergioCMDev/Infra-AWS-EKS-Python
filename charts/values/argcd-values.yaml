@@ -1,0 +1,20 @@
+controller:
+  replicas: 1
+
+server:
+  replicas: 2
+  service:
+    type: LoadBalancer
+  annotations:
+  service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+
+repoServer:
+  replicas: 1
+applicationSet:
+  replicas: 1
+notifications:
+  enabled: false
+dex:
+  enabled: false
+redis:
+  enabled: true

@@ -16,3 +16,4 @@ k8s_manifests/apps/alb_serviceAccount.yaml
 k8s_manifests/apps/alb_serviceAccount.yaml
 k8s_manifests/apps/alb_serviceAccount.yaml
 scripts/install-alb-k8s-manifests-argocd.sh
+charts/values/alb_values.yaml

@@ -1,21 +1,21 @@
 #!/bin/bash
-# scripts/afterDeployInfra.sh
-
 # shellcheck disable=SC2154
 set -e
 # Variables inyectadas por Terraform:
 # - cluster_name
 # - region
 # - vpc_id
-# - AWS_ALB_IAM_ROLE
-# - ARGOCD_ROLE_ARN
+# - aws_alb_iam_role
+# - argocd_role_arn
 
 CLUSTER_NAME=${cluster_name}
 AWS_REGION=${region}
 VPC_ID=${vpc_id}
 AWS_ALB_IAM_ROLE=${aws_alb_iam_role}
 ARGOCD_ROLE_ARN=${argocd_role_arn}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+echo "script dir $SCRIPT_DIR"
 if [ -z "$CLUSTER_NAME" ] || [ -z $AWS_REGION ]; then
     echo "Usage: needs Cluster name and region"
     exit 1
@@ -31,38 +31,20 @@ helm repo update
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 CONTEXT_ARN="arn:aws:eks:$AWS_REGION:$ACCOUNT_ID:cluster/$CLUSTER_NAME"
 
-echo "Using IAM role for AWS Load Balancer Controller with name: $AWS_ALB_IAM_ROLE"
-echo "Installing AWS Load Balancer Controller via Helm"
-
 echo "Using context ARN: $CONTEXT_ARN"
 kubectl config use-context $CONTEXT_ARN
 
-echo "Applying ALB Service Account manifest..."
-kubectl apply -f ../k8s_manifests/apps/alb_serviceAccount.yaml
-
 echo "Installing ALB Controller in $CLUSTER_NAME with role $AWS_ALB_IAM_ROLE in region $AWS_REGION and VPC $VPC_ID ..."
-sleep 3
-#En caso de querer que añada un serviceAccount, añadir estas lineas y quitar la 3 y 4
-  # --set serviceAccount.create=false   \
-  # --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN"
+chmod +x "$SCRIPT_DIR/install-aws-alb.sh"
+bash "$SCRIPT_DIR/install-aws-alb.sh"
 
-helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller   \
-  -n kube-system   \
-  --set clusterName=$CLUSTER_NAME \
-  --set serviceAccount.create=false   \
-  --set serviceAccount.name=$AWS_ALB_IAM_ROLE \
-  --set region=$AWS_REGION   \
-  --set vpcId=$VPC_ID
+echo "Using IAM role for AWS Load Balancer Controller with name: $AWS_ALB_IAM_ROLE"
+echo "Installing AWS Load Balancer Controller via Helm"
 
-sleep 15
-
-echo "Applying Kubernetes manifests..."
-kubectl apply -f ../k8s_manifests/apps/deployment_blue.yaml
-kubectl apply -f ../k8s_manifests/apps/deployment_green.yaml
-kubectl apply -f ../k8s_manifests/apps/service_blue.yaml
-kubectl apply -f ../k8s_manifests/apps/service_green.yaml
-kubectl apply -f ../k8s_manifests/apps/ingress.yaml
+sleep 20
+chmod +x "$SCRIPT_DIR/Applying-k8s-manifests.sh"
+bash "$SCRIPT_DIR/Applying-k8s-manifests.sh"
 
 echo "Installing ArgoCD"
-chmod +x install-argocd.sh
-./install-argocd.sh $ARGOCD_ROLE_ARN
+chmod +x "$SCRIPT_DIR/install-argocd.sh"
+bash "$SCRIPT_DIR/install-argocd.sh" $ARGOCD_ROLE_ARN

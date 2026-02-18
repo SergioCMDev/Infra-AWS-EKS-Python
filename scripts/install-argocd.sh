@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # scripts/install-argocd.sh
-set -e
+# set -e
 ROLE_ARN=$1
+CHART_VERSION="9.4.2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# echo "script dir $SCRIPT_DIR"
+ROOT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
+CHART_LOCAL_PATH="$ROOT_DIR/charts/argo-cd-9.4.2.tgz"
+VALUES_PATH="$ROOT_DIR/charts/values/argcd-values.yaml"
 if [ -z "$ROLE_ARN" ]; then
   echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
-  echo "Uso: ./install-argocd.sh <ROLE_ARN>"
+  echo "Uso: install-argocd.sh <ROLE_ARN>"
   exit 1
 fi
 
@@ -38,19 +44,41 @@ kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 # 4. Instalar ArgoCD SIN password custom (se genera automáticamente)
 echo "Instalando ArgoCD (puede tardar varios minutos)..."
 
-helm upgrade --install argocd argo/argo-cd \
-  --namespace argocd \
-  --set server.service.type=LoadBalancer \
-  --set server.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing \
-  --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN" \
-  --set server.replicas=2 \
-  --set controller.replicas=1 \
-  --set repoServer.replicas=1 \
-  --set applicationSet.replicas=1 \
-  --set notifications.enabled=false \
-  --set dex.enabled=false \
-  --set redis.enabled=true \
-  --timeout 10m
+install_argocd(){
+  local source=$1
+  local version_flag=""
+  echo "install_argocd"
+  if [[ $source != *.tgz ]]; then
+    version_flag="version $CHART_VERSION"
+  fi
+  helm upgrade --install argocd $source \
+    --namespace argocd \
+    --$version_flag \
+    -f $VALUES_PATH \
+    --set-string controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN" \
+    --timeout 10m
+}
+
+echo "Intentando instalación remota de ArgoCD"
+ERROR_OUTPUT=$(install_argocd "argo/argo-cd" 2>&1 | tee /dev/stderr) #stderror hacia stdout almacenando todo en $()
+EXIT_CODE=${PIPESTATUS[0]} #Cogemos resultado del primer comando ejecutado, del installs
+if [ $EXIT_CODE -ne 0 ];
+  then
+  echo "Error al instalar remotamente ArgoCD $ERROR_OUTPUT"
+  if echo "$ERROR_OUTPUT" | grep -q "EOF"; then
+    echo "Encontrado EOF al descargar archivo remoto"
+    echo "Intentando instalación local de ArgoCD"
+    ERROR_OUTPUT=$(install_argocd $CHART_LOCAL_PATH 2>&1  | tee /dev/stderr)
+    EXIT_CODE=${PIPESTATUS[0]}
+    if [ $EXIT_CODE -ne 0 ];
+    then
+      echo "Error al instalar localmente ArgoCD $ERROR_OUTPUT"
+      echo "No se pudo instalar ArgoCD ni remotamente ni localmente"
+      exit 1
+    fi
+  fi
+fi
+echo "Instalación local de ArgoCD exitosa!"
 
 # 5. Esperar a que esté completamente listo
 echo "Verificando que todos los pods estén listos..."

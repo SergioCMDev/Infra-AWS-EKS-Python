@@ -12,4 +12,6 @@ locals {
   k8s_python_web_manifests_folder = "k8s_manifests/apps"
   repo_name                       = "SergioCMDev/PythonWebForIAC"
   eks_version                     = "1.33"
+  charts_values_folder            = "charts/values"
+
 }
