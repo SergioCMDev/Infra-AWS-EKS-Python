@@ -270,3 +270,93 @@ resource "aws_vpc_security_group_ingress_rule" "cluster_to_metrics_server" {
   to_port     = 4443
   ip_protocol = "tcp"
 }
+
+
+##########################################################################################
+# ArgoCD Redis
+resource "aws_vpc_security_group_egress_rule" "workers_pod_to_pod_redis" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "Redis between workers egress"
+  from_port   = 6379
+  to_port     = 6379
+  ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "workers_pod_to_pod_redis" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "Redis between workers ingress"
+  from_port   = 6379
+  to_port     = 6379
+  ip_protocol = "tcp"
+}
+
+##########################################################################################
+# ArgoCD Repo server
+resource "aws_vpc_security_group_egress_rule" "workers_pod_to_pod_ArgoCD_repo_server" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "ArgoCD repo server workers egress"
+  from_port   = 8081
+  to_port     = 8081
+  ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "workers_pod_to_pod_ArgoCD_repo_server" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "ArgoCD repo server workers ingress"
+  from_port   = 8081
+  to_port     = 8081
+  ip_protocol = "tcp"
+}
+
+##########################################################################################
+# ArgoCD Repo server
+resource "aws_vpc_security_group_egress_rule" "workers_pod_to_pod_ArgoCD_metrics" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "ArgoCD metrics egress"
+  from_port   = 8084
+  to_port     = 8084
+  ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "workers_pod_to_pod_ArgoCD_metrics" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "ArgoCD metrics ingress"
+  from_port   = 8084
+  to_port     = 8084
+  ip_protocol = "tcp"
+}
+
+
+##########################################################################################
+# TCP
+resource "aws_vpc_security_group_egress_rule" "workers_tcp_ephimereal" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "TCP ephimereal"
+  from_port   = 1025
+  to_port     = 65535
+  ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "workers_tcp_ephimereal" {
+  security_group_id            = aws_security_group.ec2_sg.id
+  referenced_security_group_id = aws_security_group.ec2_sg.id
+
+  description = "TCP ephimereal"
+  from_port   = 1025
+  to_port     = 65535
+  ip_protocol = "tcp"
+}
