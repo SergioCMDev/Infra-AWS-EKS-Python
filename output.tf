@@ -17,16 +17,6 @@ output "VPC_ID" {
   description = "VPC_ID"
 }
 
-output "ecr_repository_url" {
-  value       = aws_ecr_repository.python_web_app.repository_url
-  description = "URL del repositorio ECR"
-}
-
-output "ecr_repository_iam_role_github_actions_arn" {
-  value       = aws_iam_role.ecr_iam_github_actions_role.arn
-  description = "ARN del Rol IAM para Github Actions del repositorio ECR"
-}
-
 output "argocd_ecr_role_arn" {
   value       = aws_iam_role.argocd_ecr_pull.arn
   description = "ARN del rol para ArgoCD pull ECR"

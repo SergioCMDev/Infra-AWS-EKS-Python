@@ -1,5 +1,5 @@
 resource "aws_iam_role" "ecr_iam_github_actions_role" {
-  name = "ecr_iam_role"
+  name = "ecr_iam_github_actions_role"
 
   # Trust policy: confía en la ServiceAccount específica
   assume_role_policy = jsonencode({
@@ -15,7 +15,7 @@ resource "aws_iam_role" "ecr_iam_github_actions_role" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${local.repo_name}:*"
+          "token.actions.githubusercontent.com:sub" = "repo:${var.repo_name}:*"
         }
       }
     }]
