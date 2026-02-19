@@ -11,6 +11,7 @@ locals {
   scripts_folder                            = "scripts"
   k8s_python_web_manifests_folder           = "k8s_manifests/apps"
   k8s_python_web_manifests_templates_folder = "k8s_manifests_templates"
+  k8s_python_web_service_accounts_folder    = "k8s_service_accounts"
 
   repo_name            = "SergioCMDev/PythonWebForIAC"
   eks_version          = "1.33"

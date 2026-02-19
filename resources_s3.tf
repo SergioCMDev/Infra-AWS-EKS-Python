@@ -39,7 +39,7 @@ data "template_file" "alb_serviceAccount_tmpl" {
 }
 
 resource "local_file" "alb_serviceAccount_tmpl" {
-  filename = "${local.k8s_python_web_manifests_templates_folder}/alb_serviceAccount.yaml"
+  filename = "${local.k8s_python_web_service_accounts_folder}/alb_serviceAccount.yaml"
   content  = data.template_file.alb_serviceAccount_tmpl.rendered
 }
 

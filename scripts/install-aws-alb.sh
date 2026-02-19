@@ -6,7 +6,7 @@ ROOT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
 AWS_ALB_CHART_LOCAL_NAME="aws-load-balancer-controller-3.0.0.tgz"
 AWS_ALB_CHART_VERSION=3.0.0
 AWS_ALB_VALUES_PATH="$ROOT_DIR/charts/values/alb_values.yaml"
-AWS_ALB_SERVICE_ACCOUNT_PATH="$ROOT_DIR/k8s_manifests/apps/alb_serviceAccount.yaml"
+AWS_ALB_SERVICE_ACCOUNT_PATH="$ROOT_DIR/k8s_service_accounts/alb_serviceAccount.yaml"
 AWS_ALB_CHART_PATH="$ROOT_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
 
 install_alb(){
