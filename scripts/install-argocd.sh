@@ -7,7 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # echo "script dir $SCRIPT_DIR"
 ROOT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
 CHART_LOCAL_PATH="$ROOT_DIR/charts/argo-cd-9.4.2.tgz"
-VALUES_PATH="$ROOT_DIR/charts/values/argcd-values.yaml"
+VALUES_PATH="$ROOT_DIR/charts/values/argocd-values.yaml"
+SECRET_REPOSITORY_PATH="$ROOT_DIR/charts/values/argocd-repository-secret.yaml"
+
 if [ -z "$ROLE_ARN" ]; then
   echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
   echo "Uso: install-argocd.sh <ROLE_ARN>"
@@ -163,3 +165,8 @@ echo "   2. Cambia la password predeterminada"
 echo "   3. Crea una aplicación con:"
 echo "      kubectl apply -f k8s_manifests/platform/argocd/application.yaml"
 echo ""echo "   4. ¡Disfruta de tu CD con ArgoCD!"
+
+echo "Aplicando Manifest Secret de repositorio"
+kubectl apply -f "$SECRET_REPOSITORY_PATH"
+
+echo "Aplicando Manifest de aplicacion"
