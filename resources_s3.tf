@@ -12,7 +12,7 @@ resource "local_file" "ingress" {
 
 
 data "template_file" "install_alb_k8s_manifests_argocd_tmpl" {
-  template = file("${local.scripts_folder}/install-alb-k8s-manifests-argocd.tmpl")
+  template = file("${local.scripts_folder}/templates/install-alb-k8s-manifests-argocd.tmpl")
   vars = {
     cluster_name     = local.cluster_name
     region           = local.region
@@ -29,7 +29,7 @@ resource "local_file" "install_alb_k8s_manifests_argocd_tmpl" {
 
 
 data "template_file" "alb_serviceAccount_tmpl" {
-  template = file("${local.k8s_python_web_manifests_templates_folder}/alb_serviceAccount.tmpl")
+  template = file("${local.k8s_python_web_service_accounts_folder}/templates/alb_serviceAccount.tmpl")
   vars = {
     cluster_name      = local.cluster_name
     region            = local.region
