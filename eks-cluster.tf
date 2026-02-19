@@ -41,10 +41,16 @@ resource "aws_launch_template" "node_group" {
   ]
 }
 
+//Comprobar version con
+# aws eks describe-addon-versions \
+#   --addon-name vpc-cni \
+#   --kubernetes-version 1.32 \
+#   --query "addons[].addonVersions[0].addonVersion" \
+#   --output text
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "vpc-cni"
-  addon_version               = "v1.18.1-eksbuild.3" # Usa la última versión compatible
+  addon_version               = "v1.20.4-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
 
   depends_on = [
