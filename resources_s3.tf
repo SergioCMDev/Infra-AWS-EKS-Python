@@ -60,13 +60,13 @@ resource "local_file" "alb_values_tmpl" {
 
 #En caso de querer añadir un ServiceAccount a mano
 # data "template_file" "argocd_serviceAccount_tmpl" {
-#   template = file("${local.k8s_python_web_manifests_folder}/argocd_serviceAccount.tmpl")
+#   template = file("${local.k8s_python_web_service_accounts_folder}/templates/argocd_serviceAccount.tmpl")
 #   vars = {
 #     argocd_role_arn = aws_iam_role.argocd_ecr_pull.arn
 #   }
 # }
 
 # resource "local_file" "argocd_serviceAccount_tmpl" {
-#   filename = "${local.k8s_python_web_manifests_folder}/argocd_serviceAccount.yaml"
+#   filename = "${local.k8s_python_web_service_accounts_folder}/argocd_serviceAccount.yaml"
 #   content  = data.template_file.argocd_serviceAccount_tmpl.rendered
 # }
