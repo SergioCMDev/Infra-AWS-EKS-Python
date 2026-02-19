@@ -47,7 +47,6 @@ echo "Instalando ArgoCD (puede tardar varios minutos)..."
 install_argocd(){
   local source=$1
   local version_flag=""
-  echo "install_argocd"
   if [[ $source != *.tgz ]]; then
     version_flag="version $CHART_VERSION"
   fi
