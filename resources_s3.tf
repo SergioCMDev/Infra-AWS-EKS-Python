@@ -70,3 +70,28 @@ resource "local_file" "alb_values_tmpl" {
 #   filename = "${local.k8s_python_web_service_accounts_folder}/argocd_serviceAccount.yaml"
 #   content  = data.template_file.argocd_serviceAccount_tmpl.rendered
 # }
+
+
+data "template_file" "deployment_green_tmpl" {
+  template = file("${local.k8s_python_web_manifests_templates_folder}/deployment_green_tmpl.tmpl")
+  vars = {
+    ecr_url = var.ecr_url
+  }
+}
+
+resource "local_file" "deployment_green_tmpl" {
+  filename = "${local.k8s_python_web_manifests_folder}/deployment_green.yaml"
+  content  = data.template_file.alb_values_tmpl.rendered
+}
+
+data "template_file" "deployment_blue_tmpl" {
+  template = file("${local.k8s_python_web_manifests_templates_folder}/deployment_blue_tmpl.tmpl")
+  vars = {
+    ecr_url = var.ecr_url
+  }
+}
+
+resource "local_file" "deployment_blue_tmpl" {
+  filename = "${local.k8s_python_web_manifests_folder}/deployment_blue.yaml"
+  content  = data.template_file.alb_values_tmpl.rendered
+}

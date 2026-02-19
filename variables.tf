@@ -16,3 +16,8 @@ locals {
   eks_version          = "1.33"
   charts_values_folder = "charts/values"
 }
+
+variable "ecr_url" {
+  description = "ECR URL"
+  type        = string
+}
