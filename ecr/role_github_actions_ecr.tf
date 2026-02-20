@@ -47,6 +47,16 @@ resource "aws_iam_role_policy" "ecr_push_github_actions_pull_policy" {
           "ecr:CompleteLayerUpload"
         ]
         Resource = aws_ecr_repository.python_web_app.arn
+      },
+      { #COMPROBAR
+        "Effect" : "Allow",
+        "Action" : [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+          "ssm:PutParameter"
+        ],
+        "Resource" : "arn:aws:ssm:${var.region}:${aws_caller_identity.current}:parameter/${var.ssm_paramter}*"
       }
     ]
   })

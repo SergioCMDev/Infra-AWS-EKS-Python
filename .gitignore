@@ -17,3 +17,5 @@ k8s_manifests/apps/deployment_green.yaml
 k8s_manifests/apps/deployment_blue.yaml
 
 k8s_service_accounts/alb_serviceAccount.yaml
+k8s_manifests/apps/deployment_blue.yaml
+k8s_manifests/apps/deployment_green.yaml
