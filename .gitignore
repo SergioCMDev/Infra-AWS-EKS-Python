@@ -10,3 +10,5 @@ scripts/install-alb-k8s-manifests-argocd.sh
 charts/values/alb_values.yaml
 terraform.tfvars
 infra/4-template_config/rendered/
+infra/ecr/terraform.tfstate.backup
+infra/ecr/terraform.tfstate

@@ -108,5 +108,3 @@ resource "aws_ecr_lifecycle_policy" "python_web_app_lifecycle" {
     ]
   })
 }
-
-data "aws_caller_identity" "current" {}
