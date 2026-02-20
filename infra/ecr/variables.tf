@@ -8,7 +8,7 @@ variable "region" {
   default = "eu-west-3"
 }
 
-variable "ssm_paramter" {
+variable "ssm_parameter" {
   type    = string
   default = "/app-python-web/active-slot"
 }
