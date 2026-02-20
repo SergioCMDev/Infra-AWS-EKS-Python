@@ -1,0 +1,7 @@
+clusterName: mi-cluster
+
+serviceAccount:
+    create: false
+    name: aws-load-balancer-controller
+region: eu-west-3
+vpcId: vpc-0dd464545b31cc0df
