@@ -12,3 +12,5 @@ terraform.tfvars
 infra/4-template_config/rendered/
 infra/ecr/terraform.tfstate.backup
 infra/ecr/terraform.tfstate
+k8s_manifests/apps_OLD/deployment_green.yaml
+k8s_manifests/apps_OLD/deployment_blue.yaml

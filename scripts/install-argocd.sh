@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # scripts/install-argocd.sh
 # set -e
-ROLE_ARN=$1
+if [[ -n "$1" ]]; then
+  ROLE_ARN=$1
+fi
+
 CHART_VERSION="9.4.2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # echo "script dir $SCRIPT_DIR"
@@ -10,11 +13,11 @@ CHART_LOCAL_PATH="$ROOT_DIR/charts/argo-cd-9.4.2.tgz"
 VALUES_PATH="$ROOT_DIR/charts/values/argocd-values.yaml"
 SECRET_REPOSITORY_PATH="$ROOT_DIR/charts/values/argocd-repository-secret.yaml"
 
-if [ -z "$ROLE_ARN" ]; then
-  echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
-  echo "Uso: install-argocd.sh <ROLE_ARN>"
-  exit 1
-fi
+# if [ -z "$ROLE_ARN" ]; then
+#   echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
+#   echo "Uso: install-argocd.sh <ROLE_ARN>"
+#   exit 1
+# fi
 
 echo "Instalando ArgoCD con Helm..."
 # 0. Verificar si hay instalación previa y limpiar
@@ -48,16 +51,22 @@ echo "Instalando ArgoCD (puede tardar varios minutos)..."
 
 install_argocd(){
   local source=$1
-  local version_flag=""
+  local helm_args=()
+
   if [[ $source != *.tgz ]]; then
-    version_flag="version $CHART_VERSION"
+    helm_args+=(--version "$CHART_VERSION")
   fi
-  helm upgrade --install argocd $source \
-    --namespace argocd \
-    --$version_flag \
-    -f $VALUES_PATH \
-    --set-string controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN" \
-    --timeout 10m
+  if [[ -n "$ROLE_ARN" ]]; then
+    helm_args+=(--set-string "controller.serviceAccount.annotations.eks\.amazonaws\.com/role-arn=$ROLE_ARN")
+    helm_args+=(--set controller.serviceAccount.create=false)
+  else
+    helm_args+=(--set controller.serviceAccount.create=true)
+  fi
+  helm_args+=(-f "$VALUES_PATH")
+  helm_args+=(--namespace argocd)
+  helm_args+=(--timeout 10m)
+
+  helm upgrade --install argocd "$source" "${helm_args[@]}"
 }
 
 echo "Intentando instalación remota de ArgoCD"

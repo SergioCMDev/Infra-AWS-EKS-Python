@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INCLUDE_ECR=1
+INCLUDE_ECR=0
 echo "destruyendo infra"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -11,6 +11,9 @@ then
   bash $SCRIPT_DIR/destroy_ecr.sh
   echo -e "\n"
 fi
+
+bash $SCRIPT_DIR/delete_alb.sh
+#Quitar ALB
 bash $SCRIPT_DIR/destroy_security.sh
 echo -e "\n"
 bash $SCRIPT_DIR/destroy_eks.sh

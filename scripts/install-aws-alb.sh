@@ -1,33 +1,33 @@
 #!/bin/bash
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# echo "script dir $SCRIPT_DIR"
-ROOT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
+CURRENT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
+
 AWS_ALB_CHART_LOCAL_NAME="aws-load-balancer-controller-3.0.0.tgz"
 AWS_ALB_CHART_VERSION=3.0.0
-AWS_ALB_VALUES_PATH="$ROOT_DIR/charts/values/alb_values.yaml"
-AWS_ALB_SERVICE_ACCOUNT_PATH="$ROOT_DIR/k8s_service_accounts/alb_serviceAccount.yaml"
-AWS_ALB_CHART_PATH="$ROOT_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
+AWS_ALB_VALUES_PATH="$CURRENT_DIR/infra/4-template_config/rendered/charts_values/alb_values.yaml"
+AWS_ALB_SERVICE_ACCOUNT_PATH="$CURRENT_DIR/infra/4-template_config/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+AWS_ALB_CHART_PATH="$CURRENT_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
 
 install_alb(){
   local source=$1
   local values_file=$AWS_ALB_VALUES_PATH
-  local version_flag=""
+  local helm_args=()
 
   if [[ $source != *.tgz ]]; then
     source="eks/aws-load-balancer-controller"
-    version_flag="--version $AWS_ALB_CHART_VERSION"
+    helm_args+=(--version "$AWS_ALB_CHART_VERSION")
   fi
+  helm_args+=(-n kube-system)
+  helm_args+=(-f "$values_file")
+  helm_args+=(--timeout 10m)
+
   #COMPROBAR ERRORES
 #En caso de querer que añada un serviceAccount, añadir estas lineas y quitar la 3 y 4
-  # --set serviceAccount.create=false   \
-  # --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN"
+#  helm_args+=(--set serviceAccount.create=false)
+#  helm_args+=(--set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$ROLE_ARN")
 
-  helm upgrade --install aws-load-balancer-controller $source \
-  -n kube-system   \
-  $version_flag \
-  -f $values_file \
-  --timeout 10m
+  helm upgrade --install aws-load-balancer-controller "$source" "${helm_args[@]}"
 }
 
 echo "Applying ALB Service Account manifest..."
