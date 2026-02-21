@@ -2,12 +2,13 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURRENT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
-
+echo "ALB CURRENT DIR $CURRENT_DIR"
 AWS_ALB_CHART_LOCAL_NAME="aws-load-balancer-controller-3.0.0.tgz"
 AWS_ALB_CHART_VERSION=3.0.0
-AWS_ALB_VALUES_PATH="$CURRENT_DIR/infra/4-template_config/rendered/charts_values/alb_values.yaml"
-AWS_ALB_SERVICE_ACCOUNT_PATH="$CURRENT_DIR/infra/4-template_config/rendered/charts_service_accounts/alb_serviceAccount.yaml"
-AWS_ALB_CHART_PATH="$CURRENT_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
+AWS_ALB_VALUES_PATH="$CURRENT_DIR/rendered/charts_values/alb_values.yaml"
+AWS_ALB_SERVICE_ACCOUNT_PATH="$CURRENT_DIR/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+AWS_ALB_LOCAL_CHART_DIR="$(cd $CURRENT_DIR/.. && pwd)"
+AWS_ALB_CHART_PATH="$AWS_ALB_LOCAL_CHART_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
 
 install_alb(){
   local source=$1

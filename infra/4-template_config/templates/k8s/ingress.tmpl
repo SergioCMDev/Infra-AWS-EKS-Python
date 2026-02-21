@@ -8,7 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/security-groups: ${sg_alb}
     alb.ingress.kubernetes.io/listen-ports: '[{ "HTTP": 80 }]'
     alb.ingress.kubernetes.io/healthcheck-port: "5000"
-
+    alb.ingress.kubernetes.io/load-balancer-name: "main-alb"
     alb.ingress.kubernetes.io/actions.weighted-routing: |
       {
         "type":"forward",

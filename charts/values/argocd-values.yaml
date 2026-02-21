@@ -7,7 +7,7 @@ server:
     type: LoadBalancer
   annotations:
   service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-
+  service.beta.kubernetes.io/load-balancer-name: "argocd-alb"
 repoServer:
   replicas: 1
 applicationSet:

@@ -12,7 +12,9 @@ then
   echo -e "\n"
 fi
 
-bash $SCRIPT_DIR/delete_alb.sh
+bash $SCRIPT_DIR/delete_aws_alb.sh
+bash $SCRIPT_DIR/delete_argocd_alb.sh
+
 #Quitar ALB
 bash $SCRIPT_DIR/destroy_security.sh
 echo -e "\n"

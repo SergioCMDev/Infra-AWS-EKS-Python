@@ -14,6 +14,7 @@ VPC_ID=${vpc_id}
 AWS_ALB_IAM_ROLE=${aws_alb_iam_role}
 ARGOCD_ROLE_ARN=${argocd_role_arn}
 SCRIPT_DIR="$(cd "$(dirname "$${BASH_SOURCE[0]}")" && pwd)"
+K8s_FIXED_SCRIPTS_DIR=$(cd $SCRIPT_DIR/../../k8s_fixed_scripts && pwd)
 
 echo "script dir $SCRIPT_DIR"
 if [ -z "$CLUSTER_NAME" ] || [ -z $AWS_REGION ]; then
@@ -35,16 +36,19 @@ echo "Using context ARN: $CONTEXT_ARN"
 kubectl config use-context $CONTEXT_ARN
 
 echo "Installing ALB Controller in $CLUSTER_NAME with role $AWS_ALB_IAM_ROLE in region $AWS_REGION and VPC $VPC_ID ..."
-chmod +x "$SCRIPT_DIR/install-aws-alb.sh"
-bash "$SCRIPT_DIR/install-aws-alb.sh"
-
-echo "Using IAM role for AWS Load Balancer Controller with name: $AWS_ALB_IAM_ROLE"
+echo "Using IAM role for AWS Loazd Balancer Controller with name: $AWS_ALB_IAM_ROLE"
 echo "Installing AWS Load Balancer Controller via Helm"
+chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-aws-alb.sh"
+bash "$K8s_FIXED_SCRIPTS_DIR/install-aws-alb.sh"
 
-sleep 20
-chmod +x "$SCRIPT_DIR/Applying-k8s-manifests.sh"
-bash "$SCRIPT_DIR/Applying-k8s-manifests.sh"
+
+echo "Esperamos a que se configure ALB Controller"
+kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
+  -n kube-system --timeout=120s
+
+chmod +x "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
+bash "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
 
 echo "Installing ArgoCD"
-chmod +x "$SCRIPT_DIR/install-argocd.sh"
-bash "$SCRIPT_DIR/install-argocd.sh" $ARGOCD_ROLE_ARN
+chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-argocd.sh"
+bash "$K8s_FIXED_SCRIPTS_DIR/install-argocd.sh" $ARGOCD_ROLE_ARN
