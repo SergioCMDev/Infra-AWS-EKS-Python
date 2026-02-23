@@ -10,5 +10,5 @@ variable "region" {
 
 variable "ssm_parameter" {
   type    = string
-  default = "/app-python-web/active-slot"
+  default = "app-python-web/active-slot"
 }

@@ -48,7 +48,7 @@ resource "aws_iam_role_policy" "ecr_push_github_actions_pull_policy" {
         ]
         Resource = aws_ecr_repository.python_web_app.arn
       },
-      { #COMPROBAR
+      {
         "Effect" : "Allow",
         "Action" : [
           "ssm:GetParameter",
