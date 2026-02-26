@@ -14,3 +14,5 @@ infra/ecr/terraform.tfstate.backup
 infra/ecr/terraform.tfstate
 k8s_manifests/apps_OLD/deployment_green.yaml
 k8s_manifests/apps_OLD/deployment_blue.yaml
+infra/3-ecr/terraform.tfstate
+infra/3-ecr/terraform.tfstate.backup

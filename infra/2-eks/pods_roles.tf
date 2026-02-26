@@ -1,5 +1,5 @@
-resource "aws_iam_role" "argocd_ecr_pull" {
-  name = "argocd_ecr_pull_role"
+resource "aws_iam_role" "pods_ecr_accces" {
+  name = "pods_ecr_access_role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -11,20 +11,21 @@ resource "aws_iam_role" "argocd_ecr_pull" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:argocd:argocd-application-controller"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:default:app-service-account"
             "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
           }
         }
     }]
   })
   tags = {
-    Name = "argocd-ecr-pull-role"
+    Name = "pods-ecr-access-role"
   }
 }
 
-resource "aws_iam_role_policy" "ecr_argo_push_pull_policy" {
-  name = "ecr_argo_push_pull_policy"
-  role = aws_iam_role.argocd_ecr_pull.id
+
+resource "aws_iam_role_policy" "ecr_pods_pull_policy" {
+  name = "ecr_pods_pull_policy"
+  role = aws_iam_role.pods_ecr_accces.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
