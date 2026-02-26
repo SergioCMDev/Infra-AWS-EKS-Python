@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-blue-green
+  namespace: argocd
+  #finalizers:
+  # - resources-finalizer.argocd.argoproj.io/application
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
+    targetRevision: HEAD
+    path: k8s/manifests/overlays/minikube
+
+  # Cluster de destino
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  # Política de sincronización automática para CD
+  syncPolicy:
+    automated:
+      prune: true # Elimina recursos que ya no están en Git
+      selfHeal: true # Corrige recursos modificados manualmente
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - Validate=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignorar diferencias en el weighted routing del ingress
+  # (si lo modificas manualmente para el blue-green deployment)
+  ignoreDifferences:
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /metadata/annotations/alb.ingress.kubernetes.io~1actions.weighted-routing

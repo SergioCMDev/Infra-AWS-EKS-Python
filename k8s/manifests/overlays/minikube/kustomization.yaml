@@ -3,3 +3,12 @@ kind: Kustomization
 
 resources:
   - ../../base
+patches:
+  - patch: |-
+      - op: add
+        path: /imagePullSecrets
+        value:
+          - name: ecr-secret
+    target:
+      kind: ServiceAccount
+      name: app-service-account
