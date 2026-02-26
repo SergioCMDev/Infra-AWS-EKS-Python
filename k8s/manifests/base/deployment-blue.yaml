@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-green
+  name: app-blue
   labels:
     app: python-basic-web
-    version: green
+    version: blue
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: python-basic-web
-      version: green
+      version: blue
   template:
     metadata:
       labels:
         app: python-basic-web
-        version: green
+        version: blue
     spec:
       serviceAccountName: app-service-account
       containers:
         - name: python-basic-web
-          image: 156041411098.dkr.ecr.eu-west-3.amazonaws.com/python_web_app:green
+          image: 156041411098.dkr.ecr.eu-west-3.amazonaws.com/python_web_app:blue
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
@@ -63,10 +63,3 @@ spec:
           configMap:
             name: nginx-health
             defaultMode: 0444
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nginx-health
-data:
-  health.html: "<html><body><h1>200 OK</h1></body></html>"
