@@ -17,7 +17,7 @@ spec:
         app: python-basic-web
         version: blue
     spec:
-      serviceAccountName: app-service-account # ✅ Sin imagePullSecrets
+      serviceAccountName: app-service-account
       containers:
         - name: python-basic-web
           image: 156041411098.dkr.ecr.eu-west-3.amazonaws.com/python_web_app:blue
