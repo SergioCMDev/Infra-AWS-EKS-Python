@@ -1,25 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-green
+  name: app-blue
   labels:
     app: python-basic-web
-    version: green
+    version: blue
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: python-basic-web
-      version: green
+      version: blue
   template:
     metadata:
       labels:
         app: python-basic-web
-        version: green
+        version: blue
     spec:
+      serviceAccountName: app-service-account # ✅ Sin imagePullSecrets
       containers:
         - name: python-basic-web
-          image: ${ecr_url}:green
+          image: 156041411098.dkr.ecr.eu-west-3.amazonaws.com/python_web_app:blue
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
