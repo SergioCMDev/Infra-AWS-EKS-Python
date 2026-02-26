@@ -1,0 +1,15 @@
+controller:
+  replicas: 1
+
+server:
+  replicas: 2
+repoServer:
+  replicas: 1
+applicationSet:
+  replicas: 1
+notifications:
+  enabled: false
+dex:
+  enabled: false
+redis:
+  enabled: true
