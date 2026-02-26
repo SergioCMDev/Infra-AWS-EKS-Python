@@ -16,7 +16,8 @@ resource "aws_security_group" "alb_access_sg" {
   }
 
   tags = {
-    Name = "${var.env}-alb-access-sg"
+    Name                                        = "${var.env}-alb-access-sg"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
