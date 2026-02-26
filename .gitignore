@@ -16,3 +16,5 @@ k8s_manifests/apps_OLD/deployment_green.yaml
 k8s_manifests/apps_OLD/deployment_blue.yaml
 infra/3-ecr/terraform.tfstate
 infra/3-ecr/terraform.tfstate.backup
+kubectl
+minikube-linux-amd64
