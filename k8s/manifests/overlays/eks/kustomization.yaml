@@ -4,5 +4,5 @@ kind: Kustomization
 resources:
   - ../../base
 
-patchesStrategicMerge:
-  - service-account-patch.yaml
+patches:
+  - path: service-account-patch.yaml
