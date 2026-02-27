@@ -1,0 +1,18 @@
+# Ingress principal → blue (tráfico base)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-blue
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-blue-service
+                port:
+                  number: 80
