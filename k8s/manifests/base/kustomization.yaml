@@ -8,3 +8,4 @@ resources:
   - service-blue.yaml
   - service-green.yaml
   - service-account.yaml
+  - application-argocd.yaml

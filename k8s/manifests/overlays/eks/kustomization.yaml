@@ -6,3 +6,4 @@ resources:
 
 patches:
   - path: service-account-patch.yaml
+  - path: application-argocd-patch.yaml

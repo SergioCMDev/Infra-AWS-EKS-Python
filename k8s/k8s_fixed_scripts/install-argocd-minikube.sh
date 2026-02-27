@@ -6,12 +6,12 @@
 
 CHART_VERSION="9.4.2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# echo "script dir $SCRIPT_DIR"
-ROOT_DIR="$(cd $SCRIPT_DIR/../../.. && pwd)"
+echo "script dir $SCRIPT_DIR"
+ROOT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
 echo "ROOT DIR $ROOT_DIR"
 CHART_LOCAL_PATH="$ROOT_DIR/charts/argo-cd-9.4.2.tgz"
-VALUES_PATH="$ROOT_DIR/charts/values/argocd-values - minikube.yaml"
-SECRET_REPOSITORY_PATH="$ROOT_DIR/charts/values/argocd-repository-secret.yaml"
+VALUES_PATH="$ROOT_DIR/values/argocd-values-minikube.yaml"
+SECRET_REPOSITORY_PATH="$ROOT_DIR/values/argocd-repository-secret.yaml"
 
 echo "Instalando ArgoCD con Helm..."
 # 0. Verificar si hay instalación previa y limpiar
@@ -45,6 +45,17 @@ kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
 # 4. Instalar ArgoCD SIN password custom (se genera automáticamente)
 echo "Instalando ArgoCD (puede tardar varios minutos)..."
+create_secret(){
+  echo "Configurando/actualizando secreto de ECR..."
+
+  var_array=()
+  var_array+=(--docker-server=156041411098.dkr.ecr.eu-west-3.amazonaws.com)
+  var_array+=(--docker-username=AWS)
+  var_array+=("--docker-password=$(aws ecr get-login-password --region eu-west-3)")
+
+  kubectl create secret docker-registry ecr-secret  "${var_array[@]}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+}
 
 install_argocd(){
   local source=$1
@@ -61,11 +72,12 @@ install_argocd(){
 
   helm upgrade --install argocd "$source" "${helm_args[@]}"
 }
+create_secret
 
 echo "Intentando instalación remota de ArgoCD"
 ERROR_OUTPUT=$(install_argocd "argo/argo-cd" 2>&1 | tee /dev/stderr) #stderror hacia stdout almacenando todo en $()
 EXIT_CODE=${PIPESTATUS[0]} #Cogemos resultado del primer comando ejecutado, del installs
-if [ $EXIT_CODE -ne 0 ];
+if [[ $EXIT_CODE -ne 0 ]];
   then
   echo "Error al instalar remotamente ArgoCD $ERROR_OUTPUT"
   if echo "$ERROR_OUTPUT" | grep -q "EOF"; then
@@ -73,7 +85,7 @@ if [ $EXIT_CODE -ne 0 ];
     echo "Intentando instalación local de ArgoCD"
     ERROR_OUTPUT=$(install_argocd $CHART_LOCAL_PATH 2>&1  | tee /dev/stderr)
     EXIT_CODE=${PIPESTATUS[0]}
-    if [ $EXIT_CODE -ne 0 ];
+    if [[ $EXIT_CODE -ne 0 ]];
     then
       echo "Error al instalar localmente ArgoCD $ERROR_OUTPUT"
       echo "No se pudo instalar ArgoCD ni remotamente ni localmente"
@@ -101,14 +113,14 @@ echo "Obteniendo credenciales generadas automáticamente..."
 # Esperar hasta que el secret exista
 for i in {1..10}; do
   ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d)
-  if [ -n "$ARGOCD_PASSWORD" ]; then
+  if [[ -n "$ARGOCD_PASSWORD" ]]; then
     break
   fi
   echo "Esperando creación del secret... (intento $i/10)"
   sleep 5
 done
 
-if [ -z "$ARGOCD_PASSWORD" ]; then
+if [[ -z "$ARGOCD_PASSWORD" ]]; then
   echo " No se pudo obtener la password automática"
   echo "   Ejecuta manualmente:"
   echo "   kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
@@ -124,7 +136,7 @@ echo ""
 echo "Credenciales de acceso:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ -n "$ARGOCD_URL" ]; then
+if [[ -n "$ARGOCD_URL" ]]; then
   echo "URL:      https://${ARGOCD_URL}"
 else
   echo "URL:      Esperando asignación..."

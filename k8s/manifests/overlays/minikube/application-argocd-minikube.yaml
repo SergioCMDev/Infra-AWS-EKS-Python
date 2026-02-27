@@ -34,11 +34,3 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
-  # Ignorar diferencias en el weighted routing del ingress
-  # (si lo modificas manualmente para el blue-green deployment)
-  ignoreDifferences:
-    - group: networking.k8s.io
-      kind: Ingress
-      jsonPointers:
-        - /metadata/annotations/alb.ingress.kubernetes.io~1actions.weighted-routing

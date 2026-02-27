@@ -12,3 +12,4 @@ patches:
     target:
       kind: ServiceAccount
       name: app-service-account
+  - path: application-argocd-minikube.yaml
