@@ -341,7 +341,7 @@ bash destroy_all.sh
 
 **Sergio Cristauro Manzano**
 
-- LinkedIn: [Sergio Cristauro](https://www.linkedin.com/in/sergio-cristauro/)
+- LinkedIn: [Sergio Cristauro Manzano](www.linkedin.com/in/sergio-cristauro-manzano/)
 - Email: sergiocmdev@gmail.com
 
 ---
