@@ -1,138 +1,189 @@
-#  Infraestructura AWS EKS con CI/CD Blue-Green
+# Infraestructura AWS EKS con CI/CD Blue-Green
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.x-623CE4?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-~>6.0-623CE4?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-EKS-FF9900?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/eks/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.32-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-GitOps-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
 
 ## Descripción
 
-Proyecto de infraestructura como código (IaC) que despliega un clúster **Amazon EKS** completo utilizando **Terraform**, con capacidades de despliegue **Blue-Green** mediante GitHub Actions para una aplicación web Python (https://github.com/SergioCMDev/PythonWebForIAC/.
+Proyecto de infraestructura como código (IaC) que despliega un clúster **Amazon EKS** completo en la región `eu-west-3` (París) utilizando **Terraform**, con despliegue **Blue-Green** gestionado por **ArgoCD** y **GitHub Actions** para una aplicación web Python: [PythonWebForIAC](https://github.com/SergioCMDev/PythonWebForIAC/).
 
-Este proyecto demuestra las mejores prácticas de DevOps, incluyendo automatización completa de infraestructura, CI/CD sin interrupciones y arquitectura cloud-native escalable.
+La infraestructura se organiza en cuatro módulos Terraform independientes y ordenados, con scripts de automatización para aplicarlos de forma secuencial.
 
 ## Arquitectura
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         AWS Cloud                            │
-│                                                               │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                        VPC                            │  │
-│  │                                                        │  │
-│  │  ┌──────────────┐        ┌──────────────┐           │  │
-│  │  │   Public     │        │   Private    │           │  │
-│  │  │   Subnets    │────────│   Subnets    │           │  │
-│  │  │              │  NAT   │              │           │  │
-│  │  │  - IGW       │  GW    │  - EKS       │           │  │
-│  │  │  - ALB       │        │  - Workers   │           │  │
-│  │  └──────────────┘        └──────────────┘           │  │
-│  │                                                        │  │
-│  │  ┌────────────────────────────────────────┐          │  │
-│  │  │         EKS Cluster                    │          │  │
-│  │  │                                         │          │  │
-│  │  │  ┌──────────┐      ┌──────────┐       │          │  │
-│  │  │  │  Blue    │◄────►│  Green   │       │          │  │
-│  │  │  │  Deploy  │ LB   │  Deploy  │       │          │  │
-│  │  │  └──────────┘      └──────────┘       │          │  │
-│  │  └────────────────────────────────────────┘          │  │
-│  │                                                        │  │
-│  │  ┌────────────────────────────────────────┐          │  │
-│  │  │  GitHub Actions Runner (EC2)           │          │  │
-│  │  │  - Self-hosted runner                  │          │  │
-│  │  │  - CI/CD automation                    │          │  │
-│  │  └────────────────────────────────────────┘          │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                           AWS Cloud (eu-west-3)                  │
+│                                                                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                   VPC (124.0.0.0/16)                      │  │
+│  │                                                            │  │
+│  │  ┌─────────────────────┐    ┌────────────────────────┐   │  │
+│  │  │   Subnets Públicas   │    │   Subnets Privadas      │   │  │
+│  │  │  eu-west-3a / 3b    │    │  eu-west-3a / 3b        │   │  │
+│  │  │                      │    │                          │   │  │
+│  │  │  - Internet Gateway  │NAT │  - EKS Node Group       │   │  │
+│  │  │  - ALB (Ingress)     │───►│    (t3.medium, 1-8)     │   │  │
+│  │  └─────────────────────┘    └────────────────────────┘   │  │
+│  │                                                            │  │
+│  │  ┌─────────────────────────────────────────────────────┐ │  │
+│  │  │               EKS Cluster (Kubernetes 1.32)          │ │  │
+│  │  │                                                       │ │  │
+│  │  │    ┌────────────┐  ALB weighted  ┌────────────┐     │ │  │
+│  │  │    │  Blue (3)  │◄──────────────►│  Green (3) │     │ │  │
+│  │  │    │  replicas  │   routing      │  replicas  │     │ │  │
+│  │  │    └────────────┘                └────────────┘     │ │  │
+│  │  │                                                       │ │  │
+│  │  │    addons: vpc-cni · kube-proxy · coredns            │ │  │
+│  │  └─────────────────────────────────────────────────────┘ │  │
+│  │                                                            │  │
+│  │  ┌─────────────────────┐    ┌────────────────────────┐   │  │
+│  │  │   ECR Repository    │    │   ArgoCD (in-cluster)  │   │  │
+│  │  │  python_web_app     │    │   GitOps CD            │   │  │
+│  │  │  (ENHANCED scan)    │    │                        │   │  │
+│  │  └─────────────────────┘    └────────────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  GitHub Actions ──OIDC──► ECR push + SSM parameter update       │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-##  Características Principales
+## Características Principales
 
-- **Infraestructura como Código**: Todo el stack definido en Terraform con módulos reutilizables
-- **Despliegue Blue-Green**: Zero-downtime deployments con rollback instantáneo
-- **CI/CD Automatizado**: Pipeline completo con GitHub Actions
-- **Seguridad Avanzada**:
-  - Security groups granulares
-  - OIDC para autenticación con AWS
-  - IAM roles con mínimos privilegios
-  - Subnets privadas para workers
-- **Alta Disponibilidad**: Multi-AZ deployment con balanceo de carga
-- **Optimización de Costos**: Uso de Spot Instances y auto-scaling
+- **Infraestructura modular**: 4 módulos Terraform independientes y ordenados (`networking` → `eks` → `ecr` → `template_config`)
+- **Despliegue Blue-Green**: Zero-downtime con pesos de tráfico configurables via ALB weighted routing
+- **GitOps con ArgoCD**: ArgoCD instalado en el clúster gestiona los manifiestos K8s desde el repositorio
+- **CI/CD sin credenciales estáticas**: OIDC para GitHub Actions → ECR push sin secrets de larga duración
+- **ECR con escaneo ENHANCED**: Análisis de vulnerabilidades en cada push de imagen
+- **Seguridad en capas**: Security groups granulares por componente (ALB/NLB, cluster, workers)
+- **Kustomize multi-entorno**: Overlays diferenciados para EKS y Minikube
+- **Templates Terraform**: Generación automática de scripts, valores Helm y service accounts con variables del estado
 
 ## Tecnologías Utilizadas
 
-### Infrastructure & Cloud
-- **Terraform** - Infraestructura como código
-- **AWS EKS** - Kubernetes gestionado
-- **AWS VPC** - Networking aislado
-- **AWS ALB** - Application Load Balancer
-- **AWS S3** - Backend de estado de Terraform
-- **AWS EC2** - GitHub self-hosted runner
+### Infraestructura & Cloud
+| Herramienta | Uso |
+|---|---|
+| **Terraform ~> 6.0 (AWS provider)** | Infraestructura como código |
+| **AWS EKS** (Kubernetes 1.32) | Clúster gestionado |
+| **AWS VPC** | Red aislada multi-AZ (eu-west-3a/3b) |
+| **AWS ALB** (AWS Load Balancer Controller) | Ingress con weighted routing Blue-Green |
+| **AWS ECR** | Registro privado de imágenes Docker |
+| **AWS S3** | Backend remoto de estado Terraform |
+| **AWS SSM Parameter Store** | Paso de parámetros entre pipeline y clúster |
+| **OIDC (GitHub + EKS)** | Autenticación federada sin credenciales estáticas |
 
-### Container & Orchestration
-- **Kubernetes** - Orquestación de contenedores
-- **Docker** - Containerización
-- **Kubectl** - CLI de Kubernetes
+### Contenedores & Orquestación
+| Herramienta | Uso |
+|---|---|
+| **Kubernetes 1.32** | Orquestación de contenedores |
+| **ArgoCD** | GitOps Continuous Delivery |
+| **Helm** | Instalación de ALB Controller y ArgoCD |
+| **Kustomize** | Gestión de manifiestos multi-entorno |
+| **Docker** | Containerización de la aplicación |
 
-### CI/CD & Automation
-- **GitHub Actions** - Pipeline CI/CD
-- **Bash Scripts** - Automatización de despliegues
+### CI/CD & Automatización
+| Herramienta | Uso |
+|---|---|
+| **GitHub Actions** | Pipeline CI/CD (build → push → deploy) |
+| **Bash Scripts** | Automatización de apply/destroy por módulo |
 
 ## Estructura del Proyecto
 
 ```
 .
-├── main.tf                      # Configuración principal de Terraform
-├── provider.tf                  # Configuración de providers
-├── variables.tf                 # Variables de entrada
-├── output.tf                    # Outputs de la infraestructura
+├── infra/                          # Infraestructura Terraform
+│   ├── main.tf                     # Configuración raíz (AWS provider ~> 6.0)
+│   ├── provider.tf
+│   ├── variables.tf                # Variables globales (región: eu-west-3, env: dev)
+│   │
+│   ├── 1-networking/               # Módulo 1: Red
+│   │   ├── vpc.tf                  # VPC (124.0.0.0/16, DNS habilitado)
+│   │   ├── public_network.tf       # Subnets públicas (eu-west-3a/3b)
+│   │   ├── private_networks.tf     # Subnets privadas (eu-west-3a/3b)
+│   │   ├── gateway.tf              # Internet Gateway
+│   │   ├── nat.tf                  # NAT Gateway
+│   │   ├── public_routes.tf        # Tabla de rutas públicas
+│   │   ├── private_routes.tf       # Tabla de rutas privadas
+│   │   ├── security_alb_nlb_ssm.tf # Security groups para ALB/NLB/SSM
+│   │   ├── security_cluster.tf     # Security group del control plane EKS
+│   │   └── security_workers.tf     # Security group de los worker nodes
+│   │
+│   ├── 2-eks/                      # Módulo 2: Clúster EKS
+│   │   ├── eks_cluster.tf          # Cluster + Node Group (t3.medium, 1-8 nodos)
+│   │   ├── eks_roles.tf            # IAM roles del control plane
+│   │   ├── workers_roles.tf        # IAM roles de los worker nodes
+│   │   ├── oidc.tf                 # OIDC provider del clúster EKS
+│   │   ├── alb_role.tf             # IAM role para AWS Load Balancer Controller
+│   │   ├── argocd_role.tf          # IAM role para ArgoCD (pull ECR via IRSA)
+│   │   ├── pods_roles.tf           # IAM roles adicionales para pods
+│   │   └── iam_policies/
+│   │       └── alb_controller_policy.json
+│   │
+│   ├── 3-ecr/                      # Módulo 3: Registro de imágenes
+│   │   ├── ecr.tf                  # Repositorio ECR con escaneo ENHANCED
+│   │   ├── role_github_actions_ecr.tf  # OIDC role para GitHub Actions → ECR + SSM
+│   │   └── eks_pods_ecr_policies.tf    # Políticas ECR para pods del clúster
+│   │
+│   ├── 4-template_config/          # Módulo 4: Generación de configuración
+│   │   └── templates/
+│   │       ├── scripts/
+│   │       │   └── install-alb-k8s-manifests-argocd.tmpl  # Script de post-instalación
+│   │       ├── charts_service_accounts/
+│   │       │   ├── alb_serviceAccount.tmpl     # SA para ALB Controller
+│   │       │   └── argocd_serviceAccount.tmpl  # SA para ArgoCD (IRSA)
+│   │       ├── charts_values/
+│   │       │   └── alb_values.tmpl             # Values de Helm para ALB
+│   │       └── k8s/
+│   │           └── ingress.tmpl                # Ingress con VPC_ID y cluster_name
+│   │
+│   └── infra_scripts/              # Scripts de automatización por módulo
+│       ├── apply_all.sh            # Aplica los 4 módulos en orden
+│       ├── apply_networking.sh
+│       ├── apply_eks.sh
+│       ├── apply_ecr.sh
+│       ├── apply_template_config.sh
+│       ├── destroy_all.sh
+│       └── destroy_*.sh            # Destrucción individual por módulo
 │
-├── vpc.tf                       # Definición de VPC
-├── public_network.tf            # Subnets públicas
-├── private_networks.tf          # Subnets privadas
-├── gateway.tf                   # Internet Gateway
-├── nat.tf                       # NAT Gateway
-├── public_routes.tf             # Rutas públicas
-├── private_routes.tf            # Rutas privadas
-│
-├── eks-cluster.tf               # Cluster EKS
-├── security_cluster.tf          # Security groups del cluster
-├── security_workers.tf          # Security groups de workers
-├── roles.tf                     # IAM roles del cluster
-├── workers_roles.tf             # IAM roles de workers
-│
-├── roles_alb.tf                 # Roles para ALB Controller
-├── security_alb-nlb-ssm.tf      # Security groups para ALB/NLB
-├── oidc.tf                      # OIDC provider
-│
-├── github-runner-ec2.tf         # EC2 para GitHub runner
-├── security_github_runner.tf    # Security groups del runner
-│
-├── resources_s3.tf              # Bucket S3 para estado
-│
-├── k8s_manifests/               # Manifiestos de Kubernetes
-│   ├── deployment-blue.yaml     # Deployment Blue
-│   ├── deployment-green.yaml    # Deployment Green
-│   ├── service.yaml             # Service
-│   └── ingress.yaml             # Ingress/ALB
-│
-├── k8s_config_files/            # Configuración adicional K8s
-│
-└── scripts/                     # Scripts de automatización
-    ├── deploy-blue-green.sh     # Script de despliegue
-    └── rollback.sh              # Script de rollback
+└── k8s/                            # Kubernetes
+    ├── manifests/
+    │   ├── base/                   # Manifiestos base (Kustomize)
+    │   │   ├── deployment-blue.yaml    # 3 réplicas, puerto 5000, health probes
+    │   │   ├── deployment-green.yaml
+    │   │   ├── ingress-blue.yaml
+    │   │   ├── ingress-green.yaml
+    │   │   ├── service-blue.yaml
+    │   │   ├── service-green.yaml
+    │   │   ├── service-account.yaml
+    │   │   ├── nginx-health-config.yaml
+    │   │   └── kustomization.yaml
+    │   └── overlays/
+    │       ├── eks/                # Overlay para AWS EKS
+    │       └── minikube/           # Overlay para desarrollo local
+    ├── k8s_fixed_scripts/
+    │   ├── install-argocd.sh
+    │   ├── install-aws-alb.sh
+    │   ├── Applying-k8s-manifests.sh
+    │   ├── blue-green-updater.sh   # Cambia pesos ALB (Blue% + Green% = 100)
+    │   └── cleanup-argocd.sh
+    └── values/
+        ├── argocd-values.yaml
+        └── argocd-values-minikube.yaml
 ```
 
 ## Pre-requisitos
 
-Antes de comenzar, asegúrate de tener instalado:
-
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
-- [AWS CLI](https://aws.amazon.com/cli/) configurado con credenciales
+- [AWS CLI](https://aws.amazon.com/cli/) configurado con credenciales de administrador
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [Docker](https://docs.docker.com/get-docker/)
-- Cuenta de AWS con permisos de administrador
-- Repositorio GitHub para la aplicación Python
+- [Helm](https://helm.sh/docs/intro/install/)
+- [jq](https://stedolan.github.io/jq/) (requerido por `blue-green-updater.sh`)
+- Cuenta de AWS con permisos suficientes para crear VPC, EKS, IAM, ECR y S3
+- Repositorio GitHub para guardar los manifiestos que ArgoCD sincronizará
 
 ## Instalación y Configuración
 
@@ -143,51 +194,54 @@ git clone https://github.com/SergioCMDev/Infra-AWS-EKS-Python.git
 cd Infra-AWS-EKS-Python
 ```
 
-### 2. Configurar Variables
+### 2. Configurar el Backend S3
 
-Edita el archivo `variables.tf` o crea un `terraform.tfvars`:
-
-```hcl
-aws_region          = "eu-west-1"
-cluster_name        = "my-eks-cluster"
-vpc_cidr            = "10.0.0.0/16"
-availability_zones  = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
-```
-
-### 3. Inicializar Terraform
+Cada módulo usa un backend S3 independiente. Asegúrate de que el bucket exista antes de inicializar:
 
 ```bash
-terraform init
+aws s3api create-bucket \
+  --bucket my-terraform-project-bucket-aws-tokio-2 \
+  --region eu-west-3 \
+  --create-bucket-configuration LocationConstraint=eu-west-3
 ```
 
-### 4. Planificar el Despliegue
+### 3. Desplegar la Infraestructura
+
+El script `apply_all.sh` aplica los 4 módulos en el orden correcto:
 
 ```bash
-terraform plan
+cd infra/infra_scripts
+bash apply_all.sh
 ```
 
-### 5. Aplicar la Infraestructura
+O bien, módulo a módulo:
 
 ```bash
-terraform apply
+bash apply_networking.sh    # 1. VPC, subnets, security groups
+bash apply_eks.sh           # 2. Clúster EKS + node group + IAM
+bash apply_ecr.sh           # 3. ECR + roles OIDC para GitHub Actions
+bash apply_template_config.sh  # 4. Genera scripts y configuración con outputs anteriores
 ```
 
-Este proceso creará:
-- 1 VPC con subnets públicas y privadas
-- 1 Cluster EKS con node group
-- 1 Application Load Balancer
-- 1 EC2 instance para GitHub runner
-- Todos los security groups y IAM roles necesarios
+### 4. Post-instalación: ALB, K8s manifests y ArgoCD
 
-### 6. Configurar kubectl
+El módulo `4-template_config` genera un script renderizado con los valores del estado de Terraform. Ejecútalo una vez que el clúster esté activo:
 
 ```bash
-aws eks update-kubeconfig --region eu-west-1 --name my-eks-cluster
+cd infra/4-template_config/rendered/scripts
+bash install-alb-k8s-manifests-argocd.sh
 ```
 
-### 7. Verificar el Cluster
+Este script:
+1. Configura `kubeconfig` para el clúster
+2. Instala el **AWS Load Balancer Controller** via Helm
+3. Aplica los manifiestos K8s (deployments Blue/Green, services, ingress)
+4. Instala **ArgoCD** con su IAM role para pull de ECR
+
+### 5. Verificar el Clúster
 
 ```bash
+aws eks update-kubeconfig --region eu-west-3 --name mi-cluster
 kubectl get nodes
 kubectl get pods -A
 ```
@@ -196,126 +250,93 @@ kubectl get pods -A
 
 ### Cómo Funciona
 
-1. **Estado Inicial**: Deployment Blue activo recibiendo tráfico
-2. **Nuevo Deploy**: Se despliega versión Green en paralelo
-3. **Health Check**: Se verifica que Green esté saludable
-4. **Switch**: Se actualiza el Service para apuntar a Green
-5. **Cleanup**: Blue permanece inactivo para posible rollback
+El ALB gestiona el tráfico mediante **weighted routing** entre los dos deployments. Ambos conviven siempre en el clúster con 3 réplicas cada uno.
 
-### Proceso de Despliegue
+1. **Estado Inicial**: Blue recibe el 100% del tráfico
+2. **Nuevo Deploy**: GitHub Actions construye la imagen y la publica en ECR con tag `green`
+3. **Sincronización GitOps**: ArgoCD detecta el cambio en el repositorio y actualiza el deployment Green
+4. **Health Check**: Startup, liveness y readiness probes validan la nueva versión
+5. **Switch de Tráfico**: Se actualiza el peso del Ingress ALB
+### Cambio de Pesos de Tráfico
 
-El pipeline de GitHub Actions automáticamente:
+```bash
+# Enviar 100% a Blue (estado inicial o rollback)
+bash k8s/k8s_fixed_scripts/blue-green-updater.sh default <ingress-name> 100 0
 
-```yaml
-1. Build → Construye nueva imagen Docker
-2. Push → Sube imagen a DockerHub
-3. Deploy → Despliega a ambiente Green
-4. Test → Ejecuta smoke tests
-5. Switch → Cambia tráfico a Green
-6. Verify → Monitorea métricas
+# Enviar 100% a Green (nuevo despliegue estable)
+bash k8s/k8s_fixed_scripts/blue-green-updater.sh default <ingress-name> 0 100
+
+# Canary: 80% Blue, 20% Green
+bash k8s/k8s_fixed_scripts/blue-green-updater.sh default <ingress-name> 80 20
 ```
+
+> Los pesos deben sumar 100. El script valida esto antes de aplicar el patch.
 
 ### Rollback Instantáneo
 
-En caso de problemas:
+Basta con invertir los pesos de vuelta a Blue:
 
 ```bash
-./scripts/rollback.sh
+bash k8s/k8s_fixed_scripts/blue-green-updater.sh default <ingress-name> 100 0
 ```
-
-Esto revierte el tráfico al deployment anterior en menos de 5 segundos.
 
 ## Seguridad
 
-### Seguridad de red
-- Workers en subnets privadas sin acceso directo a internet
-- NAT Gateway para salida controlada
-- Security groups con mínimo privilegio
+### Red
+- Worker nodes en subnets **privadas** sin acceso directo a internet
+- NAT Gateway para salida controlada al exterior
+- Security groups independientes y granulares para ALB/NLB, control plane y workers
 
 ### IAM & Autenticación
-- OIDC para GitHub Actions (sin credentials estáticas)
-- Service accounts de Kubernetes con IAM roles
-- Políticas IAM específicas por servicio
+- **OIDC para GitHub Actions**: push a ECR y escritura en SSM sin credenciales estáticas de larga duración
+- **IRSA (IAM Roles for Service Accounts)**: ArgoCD y el ALB Controller usan sus propios roles IAM mínimos
+- Políticas IAM de mínimo privilegio por componente
 
-### Mejores prácticas
-- Secrets gestionados con AWS Secrets Manager
-- Encryption at rest para EBS y S3
-- VPC flow logs para auditoría
+### Imágenes
+- ECR con **escaneo ENHANCED** (Amazon Inspector) en cada push
+- Política de repositorio que restringe el pull solo a la cuenta de AWS propietaria
 
-## Monitoreo y Observabilidad
+## Desarrollo Local con Minikube
 
-```bash
-# Ver logs de pods
-kubectl logs -f deployment/python-app-green
-
-# Métricas del cluster
-kubectl top nodes
-kubectl top pods
-
-# Estado de los deployments
-kubectl get deployments -o wide
-```
-
-
-### Para añadir una nueva funcionalidad
+Los overlays de Kustomize incluyen una configuración alternativa para Minikube:
 
 ```bash
-# 1. Crear rama
-git checkout -b feature/nueva-funcionalidad
+# Instalar ArgoCD en Minikube
+bash k8s/k8s_fixed_scripts/install-argocd-minikube.sh
 
-# 2. Desarrollar y commitear
-git add .
-git commit -m "feat: nueva funcionalidad"
-
-# 3. Push dispara el pipeline
-git push origin feature/nueva-funcionalidad
-
-# 4. El pipeline automáticamente:
-#    - Ejecuta tests
-#    - Construye imagen
-#    - Despliega a Green
-#    - Ejecuta smoke tests
-#    - Switch de tráfico si todo OK
+# Aplicar manifiestos con overlay de Minikube
+bash k8s/k8s_fixed_scripts/Applying-k8s-manifests-minikube.sh
 ```
 
 ## Limpieza de Recursos
 
-Para destruir toda la infraestructura:
+Destruir módulo a módulo (orden inverso recomendado):
 
 ```bash
-# Eliminar recursos de Kubernetes primero
-kubectl delete all --all -n default
-
-# Destruir infraestructura de Terraform
-terraform destroy
+cd infra/infra_scripts
+bash destroy_template_config.sh
+bash destroy_ecr.sh
+bash destroy_eks.sh
+bash destroy_networking.sh
 ```
 
-**Advertencia**: Esto eliminará TODOS los recursos creados. Asegúrate de hacer backup de datos importantes.
+O todo a la vez:
+
+```bash
+bash destroy_all.sh
+```
+
+> **Advertencia**: Esto eliminará TODOS los recursos de AWS creados. Revisa los outputs de Terraform antes de destruir.
 
 ## Mejoras Futuras
 
-- [ ] Integración con Prometheus/Grafana para métricas avanzadas
-- [ ] Implementar Horizontal Pod Autoscaler (HPA)
-- [ ] Agregar Cluster Autoscaler
-- [ ] Implementar service mesh (Istio/Linkerd)
-- [ ] Añadir canary deployments
-- [ ] Implementar disaster recovery multi-región
-- [ ] Agregar tests de carga automatizados
-
-## Contribuciones
-
-Las contribuciones son bienvenidas. Para contribuir:
-
-1. Fork del proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
-
+- [ ] Integración con Prometheus/Grafana para métricas del clúster
+- [ ] Horizontal Pod Autoscaler (HPA) para Blue y Green
+- [ ] Cluster Autoscaler para nodos
+- [ ] Canary deployments progresivos con lógica en el pipeline
+- [ ] Disaster recovery multi-región
+- [ ] Separación de responsabilidad añadiendo un nuevo repositorio para los manifiestos de K8s
+- [ ] Desacople de ingress y Terraform
 ## Autor
 
 **Sergio Cristauro Manzano**
@@ -323,15 +344,7 @@ Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detall
 - LinkedIn: [Sergio Cristauro](https://www.linkedin.com/in/sergio-cristauro/)
 - Email: sergiocmdev@gmail.com
 
-## Agradecimientos
-
-- Documentación oficial de Terraform
-- Comunidad de AWS EKS
-- Kubernetes community
-- GitHub Actions documentation
-
 ---
 
-⭐ Si este proyecto te ha sido útil, considera darle una estrella en GitHub
-
-📫 Para preguntas o sugerencias, abre un issue o contáctame directamente
+Si este proyecto te ha sido útil, considera darle una estrella en GitHub.
+Para preguntas o sugerencias, abre un issue o contáctame directamente.
