@@ -328,15 +328,32 @@ bash destroy_all.sh
 
 > **Advertencia**: Esto eliminará TODOS los recursos de AWS creados. Revisa los outputs de Terraform antes de destruir.
 
-## Mejoras Futuras
+# Hoja de Ruta hacia Producción (Enterprise Ready)
 
-- [ ] Integración con Prometheus/Grafana para métricas del clúster
-- [ ] Horizontal Pod Autoscaler (HPA) para Blue y Green
-- [ ] Cluster Autoscaler para nodos
-- [ ] Canary deployments progresivos con lógica en el pipeline
-- [ ] Disaster recovery multi-región
-- [ ] Separación de responsabilidad añadiendo un nuevo repositorio para los manifiestos de K8s
-- [ ] Desacople de ingress y Terraform
+Para llevar este proyecto a estándares corporativos, se plantean las siguientes mejoras progresivas:
+
+### 1. Gestión de Estado y Gobernanza
+- [ ] **State Locking con DynamoDB**: Implementar bloqueo de estado de Terraform para evitar colisiones en entornos colaborativos.
+- [ ] **Terragrunt**: Migrar la gestión de módulos a Terragrunt para reducir DRY y gestionar dependencias entre entornos (dev/staging/prod).
+- [ ] **Análisis Estático (Shift Left)**: Integrar `tfsec` o `checkov` en el pipeline de CI/CD para validar la seguridad de la IaC.
+
+### 2. Escalabilidad y Resiliencia
+- [ ] **Karpenter**: Sustituir el Cluster Autoscaler por Karpenter para un aprovisionamiento de nodos más rápido y eficiente.
+- [ ] **Nodos Mixtos (Spot & On-Demand)**: Configurar Node Groups que combinen instancias Spot para ahorro de costes y On-Demand para componentes críticos.
+- [ ] **Horizontal Pod Autoscaler (HPA)**: Escalar automáticamente las réplicas de los deployments Blue/Green basados en CPU/RAM.
+
+### 3. Observabilidad Avanzada
+- [ ] **Stack LGTM**: Desplegar Prometheus, Grafana, Loki y Tempo para una trazabilidad completa (Métricas, Logs y Traces).
+- [ ] **CloudWatch Container Insights**: Integración nativa con AWS para monitorización de rendimiento del clúster.
+
+### 4. GitOps y Entrega Continua (Avanzado)
+- [ ] **Argo Rollouts**: Sustituir el script de Bash por Argo Rollouts para gestionar el Blue-Green de forma declarativa con análisis automático de métricas y rollback instantáneo.
+- [ ] **ExternalDNS & Cert-Manager**: Automatizar la creación de registros en Route53 y la obtención de certificados SSL/TLS con Let's Encrypt.
+- [ ] **Separación de Repositorios**: Desacoplar el código de infraestructura, la aplicación y los manifiestos de Kubernetes en repositorios independientes.
+
+### 5. Seguridad de Red
+- [ ] **Service Mesh (Istio o Linkerd)**: Implementar una malla de servicios para mTLS entre pods, observabilidad de red y control de tráfico fino.
+- [ ] **Network Policies**: Restringir el tráfico este-oeste entre namespaces para aplicar el principio de mínimo privilegio.
 ## Autor
 
 **Sergio Cristauro Manzano**
