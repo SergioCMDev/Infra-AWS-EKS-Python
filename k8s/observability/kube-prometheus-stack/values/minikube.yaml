@@ -1,0 +1,24 @@
+grafana:
+  enabled: true
+  adminPassword: "admin"
+  persistence:
+    enabled: false
+  service:
+    type: ClusterIP
+
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 2d
+
+alertmanager:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+defaultRules:
+  create: true
