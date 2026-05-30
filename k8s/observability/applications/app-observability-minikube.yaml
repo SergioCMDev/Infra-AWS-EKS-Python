@@ -15,13 +15,18 @@ spec:
       chart: kube-prometheus-stack
       targetRevision: 68.2.1
       helm:
+        skipCRDs: true
         valueFiles:
           - $values/k8s/observability/kube-prometheus-stack/values/minikube.yaml
 
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
       targetRevision: HEAD
       ref: values
-
+  syncOptions:
+      - CreateNamespace=true
+      - Validate=true
+      - PruneLast=true
+      - ServerSideApply=true
   syncPolicy:
     automated:
       prune: true
