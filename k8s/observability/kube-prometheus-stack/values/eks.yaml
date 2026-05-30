@@ -39,9 +39,6 @@ nodeExporter:
 kubeStateMetrics:
   enabled: true
 
-prometheusOperator:
-  enabled: true
-
 defaultRules:
   create: true
 prometheusOperator:
