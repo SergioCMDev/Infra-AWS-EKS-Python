@@ -22,3 +22,8 @@ kubeStateMetrics:
 
 defaultRules:
   create: true
+prometheusOperator:
+  tls:
+    enabled: false
+  admissionWebhooks:
+    enabled: false

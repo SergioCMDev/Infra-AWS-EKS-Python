@@ -13,8 +13,3 @@ dex:
   enabled: false
 redis:
   enabled: true
-prometheusOperator:
-  tls:
-    enabled: false
-  admissionWebhooks:
-    enabled: false
