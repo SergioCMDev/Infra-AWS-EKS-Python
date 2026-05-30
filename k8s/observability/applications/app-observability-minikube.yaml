@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: app-observability-minikube
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   project: default
 
@@ -17,7 +19,6 @@ spec:
       helm:
         valueFiles:
           - $values/k8s/observability/kube-prometheus-stack/values/minikube.yaml
-        # Eliminamos (o ponemos en false) skipCRDs
         skipCRDs: false 
 
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
