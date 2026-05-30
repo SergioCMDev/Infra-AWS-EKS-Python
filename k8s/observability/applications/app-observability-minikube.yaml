@@ -34,7 +34,6 @@ spec:
       - Validate=true
       - PruneLast=true
       - ServerSideApply=true
-      - Replace=true
     retry:
       limit: 5
       backoff:
