@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
     targetRevision: HEAD
-    path: k8s/observability/kube-prometheus-stack/crds
+    path: k8s/observability/kube-prometheus-stack/crds-split
   syncPolicy:
     automated:
       prune: true
