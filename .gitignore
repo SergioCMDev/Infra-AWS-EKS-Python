@@ -18,3 +18,4 @@ infra/3-ecr/terraform.tfstate
 infra/3-ecr/terraform.tfstate.backup
 kubectl
 minikube-linux-amd64
+k8s/observability/kube-prometheus-stack/crds/crds.yaml

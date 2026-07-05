@@ -17,6 +17,7 @@ spec:
       chart: kube-prometheus-stack
       targetRevision: 68.2.1
       helm:
+        skipCrds: true
         valueFiles:
           - $values/k8s/observability/kube-prometheus-stack/values/minikube.yaml
 
