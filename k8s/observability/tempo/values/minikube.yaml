@@ -1,0 +1,33 @@
+multitenancyEnabled: false
+
+tempo:
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+server:
+  http_listen_port: 3200
+
+ingester:
+  trace_idle_period: 10s
+  max_block_duration: 5m
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
