@@ -20,7 +20,7 @@ config:
     batch: {}
 
   exporters:
-    logging:
+    debug:
       verbosity: detailed
 
   service:
