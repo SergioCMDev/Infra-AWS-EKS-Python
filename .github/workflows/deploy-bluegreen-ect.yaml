@@ -1,0 +1,148 @@
+# .github/workflows/deploy-bluegreen-ecr.yaml
+name: Blue-Green Deployment from ECR
+
+on:
+  repository_dispatch:
+    types: [deploy-app]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "ECR image tag to deploy"
+        required: true
+      ecr_registry:
+        description: "ECR registry URL"
+        required: true
+      repository:
+        description: "ECR repository name"
+        required: true
+        default: "python-web-app"
+      blue_green_tag:
+        description: "Target environment (blue or green)"
+        required: true
+        default: "green"
+
+env:
+  NAMESPACE: default
+  INGRESS_NAME: main-ingress
+  APP_NAME: python-web-app
+
+jobs:
+  deploy-bluegreen:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout manifests
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: GitHubActions-Deploy-To-K8s
+
+      - name: Extract deployment info
+        id: info
+        run: |
+          # Desde repository_dispatch
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            IMAGE_TAG="${{ github.event.client_payload.image_tag }}"
+            ECR_REGISTRY="${{ github.event.client_payload.ecr_registry }}"
+            REPOSITORY="${{ github.event.client_payload.repository }}"
+            TRIGGERED_BY="${{ github.event.client_payload.triggered_by }}"
+            BLUE_GREEN_TAG="${{github.event.client_payload.blue_green_tag}}"
+          else
+            # Desde workflow_dispatch
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+            ECR_REGISTRY="${{ github.event.inputs.ecr_registry }}"
+            REPOSITORY="${{ github.event.inputs.repository }}"
+            TRIGGERED_BY="${{ github.actor }}"
+            BLUE_GREEN_TAG="${{github.event.inputs.blue_green_tag}}"
+          fi
+
+          FULL_IMAGE="${ECR_REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"
+
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
+          echo "triggered_by=$TRIGGERED_BY" >> $GITHUB_OUTPUT
+          echo "blue_green_tag=$BLUE_GREEN_TAG" >> $GITHUB_OUTPUT
+
+          echo "Deploying image: $FULL_IMAGE"
+          echo "Triggered by: $TRIGGERED_BY"
+
+      - name: Phase 1 - Canary deployment (50/50)
+        run: |
+          cd k8s_manifests/apps/
+
+          # Actualizar ingress.yaml con 50/50
+          yq eval -i '
+            .metadata.annotations."alb.ingress.kubernetes.io/actions.weighted-routing" =
+            "{\"type\":\"forward\",\"forwardConfig\":{\"targetGroups\":[{\"serviceName\":\"app-blue-service\",\"servicePort\":\"80\",\"weight\":50},{\"serviceName\":\"app-green-service\",\"servicePort\":\"80\",\"weight\":50}]}}"
+          ' ingress.yaml
+
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Deploy ${{ steps.info.outputs.image_tag }} to ${{ steps.info.outputs.blue_green_tag }} (Canary 50/50)
+
+          Triggered by: ${{ steps.info.outputs.triggered_by }}
+          Image: ${{ steps.info.outputs.full_image }}"
+          git push
+
+          echo "Waiting 60s for canary stabilization..."
+          sleep 60
+
+      - name: Phase 2 - Full deployment (100%)
+        env:
+          TARGET: ${{ steps.info.outputs.blue_green_tag }}
+        run: |
+          cd k8s_manifests/apps/
+
+          if [ "$TARGET" == "green" ]; then
+            WEIGHTS='{"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"app-blue-service","servicePort":"80","weight":0},{"serviceName":"app-green-service","servicePort":"80","weight":100}]}}'
+          else
+            WEIGHTS='{"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"app-blue-service","servicePort":"80","weight":100},{"serviceName":"app-green-service","servicePort":"80","weight":0}]}}'
+          fi
+
+          yq eval -i ".metadata.annotations.\"alb.ingress.kubernetes.io/actions.weighted-routing\" = \"$WEIGHTS\"" ingress.yaml
+
+          git add ingress.yaml
+          git commit -m "Complete deployment: 100% traffic to $TARGET
+
+          Image: ${{ steps.info.outputs.full_image }}
+          Canary successful, promoting to full traffic."
+          git push
+
+          echo "Blue-Green deployment completed!"
+          echo "Active environment: $TARGET"
+          echo "Image: ${{ steps.info.outputs.full_image }}"
+
+      - name: Create deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment**: ${{ steps.info.outputs.blue_green_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`${{ steps.info.outputs.full_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ steps.info.outputs.triggered_by }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Strategy**: Blue-Green Canary (50% → 100%)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Timeline" >> $GITHUB_STEP_SUMMARY
+          echo "1. Canary deployment (50/50 split)" >> $GITHUB_STEP_SUMMARY
+          echo "2. 60s stabilization period" >> $GITHUB_STEP_SUMMARY
+          echo "3. Full traffic switch (100% to ${{ steps.info.outputs.blue_green_tag }})" >> $GITHUB_STEP_SUMMARY
+      - name: Setting Active parameter to new target
+        env:
+          TARGET: ${{ steps.info.outputs.blue_green_tag }}
+        run: aws ssm pet-parameter --name "/app-python-web/active-slot" --value ${{ env.TARGET }}

@@ -24,6 +24,10 @@ spec:
       targetRevision: HEAD
       ref: values
 
+    - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
+      targetRevision: HEAD
+      path: k8s/observability/kube-prometheus-stack/alerts
+
   syncPolicy:
     automated:
       prune: true
