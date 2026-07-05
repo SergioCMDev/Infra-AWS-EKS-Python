@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-promtail-eks
+  name: app-observability-promtail-eks
   namespace: argocd
 spec:
   project: default
