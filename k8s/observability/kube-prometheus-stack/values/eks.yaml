@@ -7,6 +7,14 @@ grafana:
     size: 10Gi
   service:
     type: ClusterIP
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      searchNamespace: observability
 
 prometheus:
   enabled: true

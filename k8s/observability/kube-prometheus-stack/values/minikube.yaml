@@ -12,6 +12,8 @@ grafana:
       label: grafana_dashboard
     datasources:
       enabled: true
+      label: grafana_datasource
+      searchNamespace: observability
 
 alertmanager:
   enabled: true
@@ -67,7 +69,7 @@ kube-state-metrics:
 
 prometheus-node-exporter:
   enabled: true
-  
+
 prometheusOperator:
   tls:
     enabled: false
