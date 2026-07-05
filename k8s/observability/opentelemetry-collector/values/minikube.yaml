@@ -29,15 +29,15 @@ config:
       metrics:
         receivers: [otlp]
         processors: [batch]
-        exporters: [logging]
+        exporters: [debug]
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [logging]
+        exporters: [debug]
       logs:
         receivers: [otlp]
         processors: [batch]
-        exporters: [logging]
+        exporters: [debug]
 
 resources:
   requests:
