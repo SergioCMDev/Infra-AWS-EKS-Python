@@ -37,7 +37,7 @@ config:
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [debug]
+        exporters: [otlp/tempo]
       logs:
         receivers: [otlp]
         processors: [batch]
