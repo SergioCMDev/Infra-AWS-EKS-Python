@@ -22,6 +22,10 @@ config:
   exporters:
     debug:
       verbosity: detailed
+    otlp/tempo:
+      endpoint: app-observability-tempo-minikube:4317
+      tls:
+        insecure: true
 
   service:
     extensions: [health_check]

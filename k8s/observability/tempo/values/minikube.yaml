@@ -1,5 +1,5 @@
 multitenancyEnabled: false
-
+deploymentMode: SingleBinary
 tempo:
   storage:
     trace:
@@ -18,8 +18,8 @@ distributor:
   receivers:
     otlp:
       protocols:
-        grpc:
-        http:
+        grpc: {}
+        http: {}
 
 persistence:
   enabled: false

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-loki-eks
+  name: app-observability-loki-eks
   namespace: argocd
 spec:
   project: default

@@ -23,7 +23,7 @@ config:
     prometheus:
       endpoint: 0.0.0.0:9464
     otlp/tempo:
-      endpoint: app-observability-tempo:4317
+      endpoint: app-observability-tempo-eks:4317
       tls:
         insecure: true
 

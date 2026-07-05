@@ -1,7 +1,6 @@
 config:
   clients:
-    - url: http://app-observability-loki:3100/loki/api/v1/push
-
+    - url: http://app-loki-minikube:3100/loki/api/v1/push
   snippets:
     pipelineStages:
       - cri: {}
