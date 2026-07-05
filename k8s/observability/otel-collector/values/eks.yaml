@@ -1,0 +1,40 @@
+mode: deployment
+
+replicaCount: 1
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+  processors:
+    batch: {}
+
+  exporters:
+    prometheus:
+      endpoint: 0.0.0.0:9464
+    otlp/tempo:
+      endpoint: app-observability-tempo:4317
+      tls:
+        insecure: true
+
+  service:
+    pipelines:
+      metrics:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [prometheus]
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [otlp/tempo]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

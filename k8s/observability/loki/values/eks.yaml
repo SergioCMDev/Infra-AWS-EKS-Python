@@ -1,0 +1,19 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+    # storageClass: gp2
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

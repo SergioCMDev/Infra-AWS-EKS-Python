@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-otel-collector-eks
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  sources:
+    - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+      chart: opentelemetry-collector
+      targetRevision: 0.128.0
+      helm:
+        valueFiles:
+          - $values/k8s/observability/opentelemetry-collector/values/eks.yaml
+    - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
+      targetRevision: HEAD
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

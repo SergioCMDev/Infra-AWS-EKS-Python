@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-observability-tempo-eks
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: tempo
+      targetRevision: <version>
+      helm:
+        valueFiles:
+          - $values/k8s/observability/tempo/values/eks.yaml
+    - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
+      targetRevision: HEAD
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

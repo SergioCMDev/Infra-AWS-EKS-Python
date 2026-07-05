@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-observability-crds-eks
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  source:
+    repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
+    targetRevision: HEAD
+    path: k8s/observability/kube-prometheus-stack/crds-split
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
