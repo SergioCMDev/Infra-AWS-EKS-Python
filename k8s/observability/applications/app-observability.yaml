@@ -3,7 +3,6 @@ kind: Application
 metadata:
   name: app-observability
   namespace: argocd
-  metadata:
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
