@@ -67,3 +67,9 @@ kube-state-metrics:
 
 prometheus-node-exporter:
   enabled: true
+  
+prometheusOperator:
+  tls:
+    enabled: false
+  admissionWebhooks:
+    enabled: false

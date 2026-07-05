@@ -39,8 +39,11 @@ nodeExporter:
 kubeStateMetrics:
   enabled: true
 
-prometheusOperator:
-  enabled: true
-
 defaultRules:
   create: true
+prometheusOperator:
+  enabled: true
+  tls:
+    enabled: false
+  admissionWebhooks:
+    enabled: false
