@@ -1,24 +1,69 @@
 grafana:
   enabled: true
+  defaultDashboardsEnabled: true
   adminPassword: "admin"
   persistence:
     enabled: false
   service:
     type: ClusterIP
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+    datasources:
+      enabled: true
+
+alertmanager:
+  enabled: true
 
 prometheus:
   enabled: true
   prometheusSpec:
     retention: 2d
-
-alertmanager:
-  enabled: true
-
-nodeExporter:
-  enabled: true
-
-kubeStateMetrics:
-  enabled: true
+    retentionSize: 1GB
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    enableAdminAPI: false
+    replicas: 1
+    walCompression: true
+    storageSpec: {}
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
 
 defaultRules:
   create: true
+  rules:
+    alertmanager: true
+    etcd: false
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserver: false
+    kubePrometheusNodeRecording: true
+    kubeScheduler: false
+    kubeStateMetrics: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    node: true
+    prometheus: true
+
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+kube-state-metrics:
+  enabled: true
+
+prometheus-node-exporter:
+  enabled: true
