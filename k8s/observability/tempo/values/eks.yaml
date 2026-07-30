@@ -1,17 +1,21 @@
-multitenancyEnabled: false
-deploymentMode: SingleBinary
-
-extraArgs:
-  - -config.expand-env=true
-
-extraEnv:
-  - name: POD_IP
-    valueFrom:
-      fieldRef:
-        fieldPath: status.podIP
-
 tempo:
   tag: ""
+  multitenancyEnabled: false
+  extraArgs:
+    config.expand-env: "true"
+  extraEnv:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
 config: |
   memberlist:
     cluster_label: "{{ .Release.Name }}.{{ .Release.Namespace }}"
@@ -45,11 +49,3 @@ persistence:
   storageClass: gp3
   storageClassName: gp3
   size: 10Gi
-
-resources:
-  requests:
-    cpu: 100m
-    memory: 256Mi
-  limits:
-    cpu: 500m
-    memory: 512Mi

@@ -21,7 +21,8 @@ singleBinary:
   persistence:
     enabled: true
     size: 10Gi
-    # storageClass: gp2
+    storageClass: gp3
+    storageClassName: gp3
   resources:
     requests:
       cpu: 100m
@@ -38,3 +39,9 @@ write:
 
 backend:
   replicas: 0
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
