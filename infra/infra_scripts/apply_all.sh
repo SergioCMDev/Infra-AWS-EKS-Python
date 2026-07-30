@@ -8,9 +8,7 @@ bash $SCRIPT_DIR/apply_networking.sh
 echo -e "\n"
 bash $SCRIPT_DIR/apply_eks.sh
 echo -e "\n"
-bash $SCRIPT_DIR/apply_security.sh
-echo -e "\n"
-if [[ $INCLUDE_ECR ]];
+if [[ "$INCLUDE_ECR" -eq 1 ]];
 then
   bash $SCRIPT_DIR/apply_ecr.sh
   echo -e "\n"
