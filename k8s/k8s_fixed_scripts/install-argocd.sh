@@ -77,7 +77,8 @@ install_argocd(){
   fi
   if [[ -n "$ROLE_ARN" ]]; then
     helm_args+=(--set-string "controller.serviceAccount.annotations.eks\.amazonaws\.com/role-arn=$ROLE_ARN")
-    helm_args+=(--set controller.serviceAccount.create=false)
+    # Keep SA creation enabled so controller always has a valid ServiceAccount.
+    helm_args+=(--set controller.serviceAccount.create=true)
   else
     helm_args+=(--set controller.serviceAccount.create=true)
   fi
@@ -115,6 +116,10 @@ kubectl wait --for=condition=ready pod \
   -l app.kubernetes.io/name=argocd-server \
   -n argocd \
   --timeout=600s
+
+echo "Verificando componentes core de ArgoCD..."
+kubectl rollout status statefulset/argocd-application-controller -n argocd --timeout=600s
+kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=600s
 
 # 6. Esperar un poco más para asegurar que el secret se cree
 echo "Esperando a que se genere el secret inicial..."
@@ -203,3 +208,23 @@ kubectl apply -f "$ARGOCD_APPLICATION_PATH"
 echo "Verificando que app-blue-green existe en ArgoCD"
 kubectl wait --for=jsonpath='{.metadata.name}'=app-blue-green application/app-blue-green -n argocd --timeout=120s
 kubectl get application app-blue-green -n argocd
+
+echo "Esperando reconciliacion inicial de app-blue-green"
+for i in {1..30}; do
+  APP_SYNC_STATUS=$(kubectl get application app-blue-green -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || true)
+  APP_HEALTH_STATUS=$(kubectl get application app-blue-green -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || true)
+
+  if [[ -n "$APP_SYNC_STATUS" || -n "$APP_HEALTH_STATUS" ]]; then
+    echo "Application reconciliada: sync=$APP_SYNC_STATUS health=$APP_HEALTH_STATUS"
+    break
+  fi
+
+  if [[ $i -eq 30 ]]; then
+    echo "ArgoCD no reconcilio app-blue-green a tiempo."
+    echo "Revisa logs del controller: kubectl logs -n argocd statefulset/argocd-application-controller --tail=200"
+    exit 1
+  fi
+
+  echo "Esperando estado de app-blue-green... intento $i/30"
+  sleep 5
+done

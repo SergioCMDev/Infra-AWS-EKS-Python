@@ -79,3 +79,7 @@ kubectl wait --for=condition=Established crd/appprojects.argoproj.io --timeout=1
 
 chmod +x "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
 bash "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
+
+echo "Installing observability stack on EKS"
+chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-observability-eks.sh"
+bash "$K8s_FIXED_SCRIPTS_DIR/install-observability-eks.sh"

@@ -1,28 +1,48 @@
 multitenancyEnabled: false
+deploymentMode: SingleBinary
+
+extraArgs:
+  - -config.expand-env=true
+
+extraEnv:
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
 
 tempo:
+config: |
+  memberlist:
+    cluster_label: "{{ .Release.Name }}.{{ .Release.Namespace }}"
+    bind_addr:
+      - 0.0.0.0
+    advertise_addr: "${POD_IP}"
+  multitenancy_enabled: {{ .Values.tempo.multitenancyEnabled }}
+  usage_report:
+    reporting_enabled: {{ .Values.tempo.reportingEnabled }}
+  compactor:
+    compaction:
+      block_retention: {{ .Values.tempo.retention }}
+  distributor:
+    receivers:
+      {{- toYaml .Values.tempo.receivers | nindent 6 }}
+  ingester:
+    {{- toYaml .Values.tempo.ingester | nindent 4 }}
+  server:
+    {{- toYaml .Values.tempo.server | nindent 4 }}
   storage:
-    trace:
-      backend: local
-      local:
-        path: /var/tempo/traces
-
-server:
-  http_listen_port: 3200
-
-ingester:
-  trace_idle_period: 10s
-  max_block_duration: 5m
-
-distributor:
-  receivers:
-    otlp:
-      protocols:
-        grpc:
-        http:
+    {{- toYaml .Values.tempo.storage | nindent 4 }}
+  querier:
+    {{- toYaml .Values.tempo.querier | nindent 4 }}
+  query_frontend:
+    {{- toYaml .Values.tempo.queryFrontend | nindent 4 }}
+  overrides:
+    {{- toYaml .Values.tempo.overrides | nindent 4 }}
 
 persistence:
   enabled: true
+  storageClass: gp3
+  storageClassName: gp3
   size: 10Gi
 
 resources:

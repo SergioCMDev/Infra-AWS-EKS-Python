@@ -1,9 +1,13 @@
+crds:
+  enabled: false
+
 grafana:
   enabled: true
   adminPassword: "change-me"
   defaultDashboardsEnabled: true
   persistence:
     enabled: true
+    storageClassName: gp3
     size: 10Gi
   service:
     type: ClusterIP

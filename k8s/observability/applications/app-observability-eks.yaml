@@ -17,6 +17,22 @@ spec:
       chart: kube-prometheus-stack
       targetRevision: 68.2.1
       helm:
+        skipCrds: true
+        parameters:
+          - name: crds.enabled
+            value: "false"
+          - name: crds.upgradeJob.enabled
+            value: "false"
+        values: |
+          crds:
+            enabled: false
+            upgradeJob:
+              enabled: false
+          grafana:
+            persistence:
+              enabled: true
+              storageClassName: gp3
+              size: 10Gi
         valueFiles:
           - $values/k8s/observability/kube-prometheus-stack/values/eks.yaml
 
@@ -33,9 +49,17 @@ spec:
       - CreateNamespace=true
       - Validate=true
       - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+      - Replace=true
+      - Force=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition

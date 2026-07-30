@@ -13,6 +13,41 @@ spec:
       chart: opentelemetry-collector
       targetRevision: 0.128.0
       helm:
+        values: |
+          mode: deployment
+          replicaCount: 1
+          image:
+            repository: otel/opentelemetry-collector-contrib
+            tag: "0.128.0"
+          config:
+            extensions:
+              health_check:
+                endpoint: 0.0.0.0:13133
+            receivers:
+              otlp:
+                protocols:
+                  grpc: {}
+                  http: {}
+            processors:
+              batch: {}
+            exporters:
+              prometheus:
+                endpoint: 0.0.0.0:9464
+              otlp/tempo:
+                endpoint: app-observability-tempo-eks:4317
+                tls:
+                  insecure: true
+            service:
+              extensions: [health_check]
+              pipelines:
+                metrics:
+                  receivers: [otlp]
+                  processors: [batch]
+                  exporters: [prometheus]
+                traces:
+                  receivers: [otlp]
+                  processors: [batch]
+                  exporters: [otlp/tempo]
         valueFiles:
           - $values/k8s/observability/opentelemetry-collector/values/eks.yaml
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python

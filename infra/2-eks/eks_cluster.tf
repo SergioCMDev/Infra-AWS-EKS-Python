@@ -77,3 +77,15 @@ resource "aws_eks_addon" "coredns" {
     aws_eks_node_group.workers
   ]
 }
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "aws-ebs-csi-driver"
+  service_account_role_arn    = aws_iam_role.ebs_csi_controller.arn
+  resolve_conflicts_on_create = "OVERWRITE"
+
+  depends_on = [
+    aws_eks_node_group.workers,
+    aws_iam_role_policy_attachment.ebs_csi_controller_policy,
+  ]
+}
