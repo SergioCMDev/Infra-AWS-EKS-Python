@@ -14,7 +14,7 @@ VPC_ID=${vpc_id}
 AWS_ALB_IAM_ROLE=${aws_alb_iam_role}
 ARGOCD_ROLE_ARN=${argocd_role_arn}
 SCRIPT_DIR="$(cd "$(dirname "$${BASH_SOURCE[0]}")" && pwd)"
-K8s_FIXED_SCRIPTS_DIR=$(cd $SCRIPT_DIR/../../k8s_fixed_scripts && pwd)
+K8s_FIXED_SCRIPTS_DIR=$(cd "$SCRIPT_DIR/../../../../k8s/k8s_fixed_scripts" && pwd)
 
 echo "script dir $SCRIPT_DIR"
 if [ -z "$CLUSTER_NAME" ] || [ -z $AWS_REGION ]; then
@@ -41,14 +41,41 @@ echo "Installing AWS Load Balancer Controller via Helm"
 chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-aws-alb.sh"
 bash "$K8s_FIXED_SCRIPTS_DIR/install-aws-alb.sh"
 
-
 echo "Esperamos a que se configure ALB Controller"
 kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
   -n kube-system --timeout=120s
 
-chmod +x "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
-bash "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
+# Espera activa para webhook/certificados del ALB Controller.
+echo "Validando webhook TLS de AWS Load Balancer Controller..."
+for i in {1..24}; do
+  WEBHOOK_CA=$(kubectl get mutatingwebhookconfiguration aws-load-balancer-webhook \
+    -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2>/dev/null || true)
+  WEBHOOK_EP=$(kubectl get endpoints -n kube-system aws-load-balancer-webhook-service \
+    -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || true)
+
+  if [[ -n "$WEBHOOK_CA" && -n "$WEBHOOK_EP" ]]; then
+    echo "Webhook TLS listo (CA bundle y endpoint disponibles)."
+    break
+  fi
+
+  if [[ $i -eq 24 ]]; then
+    echo "Webhook del ALB Controller no quedó listo a tiempo."
+    echo "Revisa: kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller"
+    echo "Revisa: kubectl describe mutatingwebhookconfiguration aws-load-balancer-webhook"
+    exit 1
+  fi
+
+  echo "Esperando webhook TLS del ALB Controller... intento $i/24"
+  sleep 10
+done
 
 echo "Installing ArgoCD"
 chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-argocd.sh"
 bash "$K8s_FIXED_SCRIPTS_DIR/install-argocd.sh" $ARGOCD_ROLE_ARN
+
+echo "Esperamos a que los CRDs de ArgoCD estén registrados"
+kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=180s
+kubectl wait --for=condition=Established crd/appprojects.argoproj.io --timeout=180s
+
+chmod +x "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
+bash "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"

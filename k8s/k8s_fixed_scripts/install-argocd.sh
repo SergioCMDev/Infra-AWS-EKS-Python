@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # scripts/install-argocd.sh
-# set -e
+set -euo pipefail
+
+ROLE_ARN=""
 if [[ -n "$1" ]]; then
   ROLE_ARN=$1
 fi
@@ -8,11 +10,27 @@ fi
 CHART_VERSION="9.4.2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # echo "script dir $SCRIPT_DIR"
-ROOT_DIR="$(cd $SCRIPT_DIR/../../.. && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 echo "ROOT DIR $ROOT_DIR"
-CHART_LOCAL_PATH="$ROOT_DIR/charts/argo-cd-9.4.2.tgz"
-VALUES_PATH="$ROOT_DIR/charts/values/argocd-values.yaml"
-SECRET_REPOSITORY_PATH="$ROOT_DIR/charts/values/argocd-repository-secret.yaml"
+CHART_LOCAL_PATH="$ROOT_DIR/k8s/charts/argo-cd-9.4.2.tgz"
+VALUES_PATH="$ROOT_DIR/k8s/values/argocd-values.yaml"
+SECRET_REPOSITORY_PATH="$ROOT_DIR/k8s/values/argocd-repository-secret.yaml"
+ARGOCD_APPLICATION_PATH="$ROOT_DIR/k8s/manifests/overlays/eks/application-argocd-patch.yaml"
+
+if [[ ! -f "$VALUES_PATH" ]]; then
+  echo "No existe archivo de values: $VALUES_PATH"
+  exit 1
+fi
+
+if [[ ! -f "$SECRET_REPOSITORY_PATH" ]]; then
+  echo "No existe archivo secret de repositorio: $SECRET_REPOSITORY_PATH"
+  exit 1
+fi
+
+if [[ ! -f "$ARGOCD_APPLICATION_PATH" ]]; then
+  echo "No existe manifest de aplicacion ArgoCD: $ARGOCD_APPLICATION_PATH"
+  exit 1
+fi
 
 # if [ -z "$ROLE_ARN" ]; then
 #   echo "Error: Debes proporcionar el ARN del rol de ArgoCD"
@@ -173,10 +191,15 @@ echo "Próximos pasos:"
 echo "   1. Accede a la UI en la URL mostrada arriba"
 echo "   2. Cambia la password predeterminada"
 echo "   3. Crea una aplicación con:"
-echo "      kubectl apply -f k8s_manifests/platform/argocd/application.yaml"
-echo ""echo "   4. ¡Disfruta de tu CD con ArgoCD!"
+echo "      kubectl apply -f k8s/manifests/overlays/eks/application-argocd-patch.yaml"
+echo "   4. ¡Disfruta de tu CD con ArgoCD!"
 
 echo "Aplicando Manifest Secret de repositorio"
 kubectl apply -f "$SECRET_REPOSITORY_PATH"
 
 echo "Aplicando Manifest de aplicacion"
+kubectl apply -f "$ARGOCD_APPLICATION_PATH"
+
+echo "Verificando que app-blue-green existe en ArgoCD"
+kubectl wait --for=jsonpath='{.metadata.name}'=app-blue-green application/app-blue-green -n argocd --timeout=120s
+kubectl get application app-blue-green -n argocd

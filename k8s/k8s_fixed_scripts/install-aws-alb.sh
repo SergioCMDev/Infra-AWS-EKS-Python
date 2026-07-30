@@ -2,11 +2,30 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURRENT_DIR="$(cd $SCRIPT_DIR/.. && pwd)"
+REPO_ROOT="$(cd "$CURRENT_DIR/.." && pwd)"
 echo "ALB CURRENT DIR $CURRENT_DIR"
 AWS_ALB_CHART_LOCAL_NAME="aws-load-balancer-controller-3.0.0.tgz"
 AWS_ALB_CHART_VERSION=3.0.0
-AWS_ALB_VALUES_PATH="$CURRENT_DIR/rendered/charts_values/alb_values.yaml"
-AWS_ALB_SERVICE_ACCOUNT_PATH="$CURRENT_DIR/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+
+# Preferred path: Terraform 4-template_config rendered outputs.
+AWS_ALB_VALUES_PATH="$REPO_ROOT/infra/4-template_config/rendered/charts_values/alb_values.yaml"
+AWS_ALB_SERVICE_ACCOUNT_PATH="$REPO_ROOT/infra/4-template_config/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+
+# Backward compatibility path for older repo layouts.
+if [[ ! -f "$AWS_ALB_VALUES_PATH" || ! -f "$AWS_ALB_SERVICE_ACCOUNT_PATH" ]]; then
+  AWS_ALB_VALUES_PATH="$CURRENT_DIR/rendered/charts_values/alb_values.yaml"
+  AWS_ALB_SERVICE_ACCOUNT_PATH="$CURRENT_DIR/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+fi
+
+if [[ ! -f "$AWS_ALB_VALUES_PATH" || ! -f "$AWS_ALB_SERVICE_ACCOUNT_PATH" ]]; then
+  echo "No se encontraron los archivos renderizados de ALB."
+  echo "Esperados en:"
+  echo " - $REPO_ROOT/infra/4-template_config/rendered/charts_values/alb_values.yaml"
+  echo " - $REPO_ROOT/infra/4-template_config/rendered/charts_service_accounts/alb_serviceAccount.yaml"
+  echo "Ejecuta primero: infra/infra_scripts/apply_template_config.sh"
+  exit 1
+fi
+
 AWS_ALB_LOCAL_CHART_DIR="$(cd $CURRENT_DIR/.. && pwd)"
 AWS_ALB_CHART_PATH="$AWS_ALB_LOCAL_CHART_DIR/charts/$AWS_ALB_CHART_LOCAL_NAME"
 

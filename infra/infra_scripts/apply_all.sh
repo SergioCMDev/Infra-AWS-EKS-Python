@@ -3,6 +3,7 @@
 INCLUDE_ECR=1
 echo "Instalando infra"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo $SCRIPT_DIR
 bash $SCRIPT_DIR/apply_networking.sh
 echo -e "\n"
 bash $SCRIPT_DIR/apply_eks.sh
