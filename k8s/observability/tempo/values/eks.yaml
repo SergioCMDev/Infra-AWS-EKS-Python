@@ -11,6 +11,7 @@ extraEnv:
         fieldPath: status.podIP
 
 tempo:
+  tag: ""
 config: |
   memberlist:
     cluster_label: "{{ .Release.Name }}.{{ .Release.Namespace }}"

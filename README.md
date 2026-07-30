@@ -193,7 +193,10 @@ La infraestructura se organiza en cuatro módulos Terraform independientes y ord
 git clone https://github.com/SergioCMDev/Infra-AWS-EKS-Python.git
 cd Infra-AWS-EKS-Python
 ```
-
+Conectarse a AWS
+$env:AWS_PROFILE = "sergio_infra_aws"
+aws sso login
+ https://d-806770fed8.awsapps.com/start/#
 ### 2. Configurar el Backend S3
 
 Cada módulo usa un backend S3 independiente. Asegúrate de que el bucket exista antes de inicializar:
@@ -365,3 +368,11 @@ Para llevar este proyecto a estándares corporativos, se plantean las siguientes
 
 Si este proyecto te ha sido útil, considera darle una estrella en GitHub.
 Para preguntas o sugerencias, abre un issue o contáctame directamente.
+
+
+Para Minikube:
+Minikube start
+Luego instalar ARGOCD con k8s/k8s_fixed_scripts/install-argocd-minikube en una bash git
+Hacer el port forward para acceder a localhost
+instalar kubectl apply -f k8s/observability/applications/app-observability-crds-minikube.yaml
+luego kubectl apply -f k8s/observability/applications/app-observability-minikube.yaml
