@@ -193,10 +193,7 @@ La infraestructura se organiza en cuatro módulos Terraform independientes y ord
 git clone https://github.com/SergioCMDev/Infra-AWS-EKS-Python.git
 cd Infra-AWS-EKS-Python
 ```
-Conectarse a AWS
-$env:AWS_PROFILE = "sergio_infra_aws"
-aws sso login
- https://d-806770fed8.awsapps.com/start/#
+
 ### 2. Configurar el Backend S3
 
 Cada módulo usa un backend S3 independiente. Asegúrate de que el bucket exista antes de inicializar:
@@ -309,6 +306,9 @@ bash k8s/k8s_fixed_scripts/install-argocd-minikube.sh
 
 # Aplicar manifiestos con overlay de Minikube
 bash k8s/k8s_fixed_scripts/Applying-k8s-manifests-minikube.sh
+
+# Instalar observabilidad completa (CRDs + stack base + Tempo/Loki/Promtail/OTel)
+bash k8s/k8s_fixed_scripts/install-observability-minikube.sh
 ```
 
 ## Limpieza de Recursos

@@ -6,32 +6,6 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OBS_APPS_DIR="$ROOT_DIR/observability/applications"
 OBS_CONFIGMAPS_DIR="$ROOT_DIR/observability/configMaps"
 
-preflight_ebs_storage() {
-  echo "Preflight: validando EBS CSI Driver y StorageClass gp3..."
-
-  if ! kubectl get csidriver ebs.csi.aws.com >/dev/null 2>&1; then
-    echo "Falta el CSI driver ebs.csi.aws.com en el cluster."
-    echo "Instalalo antes de continuar (ejemplo):"
-    echo "  aws eks create-addon --cluster-name mi-cluster --addon-name aws-ebs-csi-driver --resolve-conflicts OVERWRITE"
-    exit 1
-  fi
-
-  if ! kubectl get storageclass gp3 >/dev/null 2>&1; then
-    echo "No existe StorageClass gp3. Creandola automaticamente..."
-    kubectl apply -f - <<'EOF'
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: gp3
-provisioner: ebs.csi.aws.com
-volumeBindingMode: WaitForFirstConsumer
-allowVolumeExpansion: true
-parameters:
-  type: gp3
-EOF
-  fi
-}
-
 ensure_observability_namespace() {
   echo "Preflight: asegurando namespace observability..."
   kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f - >/dev/null
@@ -74,17 +48,17 @@ wait_argocd_app_ready() {
     fi
 
     if [[ "$allow_synced_degraded" == "true" && "$sync_status" == "Synced" && "$health_status" == "Degraded" && ( -z "$operation_phase" || "$operation_phase" == "Succeeded" ) ]]; then
-      echo "${app_name} en Synced+Degraded sin operación fallida. Continuamos con advertencia."
+      echo "${app_name} en Synced+Degraded sin operacion fallida. Continuamos con advertencia."
       kubectl get application "$app_name" -n argocd -o jsonpath='{range .status.resources[*]}{.kind}{" "}{.namespace}{"/"}{.name}{" health="}{.health.status}{" sync="}{.status}{"\n"}{end}' | grep "health=Degraded" || true
       return 0
     fi
 
     if [[ "$allow_synced_progressing" == "true" && "$sync_status" == "Synced" && "$health_status" == "Progressing" && ( -z "$operation_phase" || "$operation_phase" == "Succeeded" ) ]]; then
-      echo "${app_name} en Synced+Progressing sin operación fallida. Continuamos y validamos en comprobaciones finales."
+      echo "${app_name} en Synced+Progressing sin operacion fallida. Continuamos y validamos en comprobaciones finales."
       return 0
     fi
 
-    echo "${app_name}: sync=${sync_status:-<vacío>} health=${health_status:-<vacío>} op=${operation_phase:-<vacío>} (${elapsed}s/${timeout_seconds}s)"
+    echo "${app_name}: sync=${sync_status:-<vacio>} health=${health_status:-<vacio>} op=${operation_phase:-<vacio>} (${elapsed}s/${timeout_seconds}s)"
 
     if (( elapsed > 0 && elapsed % 60 == 0 )); then
       echo "Diagnostico rapido de ${app_name} (conditions):"
@@ -126,12 +100,12 @@ wait_observability_apps_converged() {
   local elapsed=0
   local step=15
   local apps=(
-    "app-observability-crds-eks"
-    "app-observability-eks"
-    "app-observability-tempo-eks"
-    "app-observability-loki-eks"
-    "app-observability-promtail-eks"
-    "app-otel-collector-eks"
+    "app-observability-crds-minikube"
+    "app-observability-minikube"
+    "app-observability-tempo-minikube"
+    "app-observability-loki-minikube"
+    "app-observability-promtail-minikube"
+    "app-otel-collector-minikube"
   )
 
   echo "Validacion final: esperando apps de observabilidad en Synced+Healthy..."
@@ -212,41 +186,40 @@ apply_app_manifest() {
 echo "Verificando namespace argocd"
 kubectl get namespace argocd >/dev/null
 
-preflight_ebs_storage
 ensure_observability_namespace
 
 echo "1) CRDs de observabilidad"
 cleanup_crd_last_applied_annotation
-apply_app_manifest "$OBS_APPS_DIR/app-observability-crds-eks.yaml" "app-observability-crds-eks"
-wait_argocd_app_ready "app-observability-crds-eks" 900 false
+apply_app_manifest "$OBS_APPS_DIR/app-observability-crds-minikube.yaml" "app-observability-crds-minikube"
+wait_argocd_app_ready "app-observability-crds-minikube" 900 false
 wait_observability_crds_established
 
 echo "2) Stack base kube-prometheus-stack"
-apply_app_manifest "$OBS_APPS_DIR/app-observability-eks.yaml" "app-observability-eks"
-wait_argocd_app_ready "app-observability-eks" 1200 true true
+apply_app_manifest "$OBS_APPS_DIR/app-observability-minikube.yaml" "app-observability-minikube"
+wait_argocd_app_ready "app-observability-minikube" 1200 true true
 
 echo "3) Tempo"
-apply_app_manifest "$OBS_APPS_DIR/app-observability-tempo-eks.yaml" "app-observability-tempo-eks"
-wait_argocd_app_ready "app-observability-tempo-eks" 900 true false true
+apply_app_manifest "$OBS_APPS_DIR/app-observability-tempo-minikube.yaml" "app-observability-tempo-minikube"
+wait_argocd_app_ready "app-observability-tempo-minikube" 900 true false true
 
 echo "4) Loki"
-apply_app_manifest "$OBS_APPS_DIR/app-observability-loki-eks.yaml" "app-observability-loki-eks"
-wait_argocd_app_ready "app-observability-loki-eks" 900 true false true
+apply_app_manifest "$OBS_APPS_DIR/app-observability-loki-minikube.yaml" "app-observability-loki-minikube"
+wait_argocd_app_ready "app-observability-loki-minikube" 900 true false true
 
 echo "5) Promtail"
-apply_app_manifest "$OBS_APPS_DIR/app-observability-promtail-eks.yaml" "app-observability-promtail-eks"
-wait_argocd_app_ready "app-observability-promtail-eks" 900 true false true
+apply_app_manifest "$OBS_APPS_DIR/app-observability-promtail-minikube.yaml" "app-observability-promtail-minikube"
+wait_argocd_app_ready "app-observability-promtail-minikube" 900 true false true
 
 echo "6) OpenTelemetry Collector"
-apply_app_manifest "$OBS_APPS_DIR/app-observability-otel-collector-eks.yaml" "app-otel-collector-eks"
-wait_argocd_app_ready "app-otel-collector-eks" 900 true true true
+apply_app_manifest "$OBS_APPS_DIR/app-observability-otel-collector-minikube.yaml" "app-otel-collector-minikube"
+wait_argocd_app_ready "app-otel-collector-minikube" 900 true true true
 
 echo "7) ConfigMap de datasource Tempo para Grafana"
-kubectl apply -f "$OBS_CONFIGMAPS_DIR/grafana-tempo-datasource-eks.yaml"
+kubectl apply -f "$OBS_CONFIGMAPS_DIR/grafana-tempo-datasource-minikube.yaml"
 
 wait_observability_apps_converged 1200
 
 echo "Resumen de aplicaciones de observabilidad"
 kubectl get applications -n argocd | grep -E "observability|otel|NAME" || true
 
-echo "Observabilidad EKS desplegada correctamente."
+echo "Observabilidad Minikube desplegada correctamente."
