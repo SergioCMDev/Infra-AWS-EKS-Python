@@ -1,4 +1,3 @@
-# .github/workflows/deploy-bluegreen-ecr.yaml
 name: Blue-Green Deployment from ECR
 
 on:
@@ -15,7 +14,7 @@ on:
       repository:
         description: "ECR repository name"
         required: true
-        default: "python-web-app"
+        default: "python_web_app"
       blue_green_tag:
         description: "Target environment (blue or green)"
         required: true
@@ -24,7 +23,8 @@ on:
 env:
   NAMESPACE: default
   INGRESS_NAME: main-ingress
-  APP_NAME: python-web-app
+  CLUSTER_NAME: mi-cluster
+  ACTIVE_SLOT_SSM_PARAM: /app-python-web/active-slot
 
 jobs:
   deploy-bluegreen:
@@ -35,16 +35,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout manifests
+      - name: Checkout infra repo
         uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-          yq --version
+          sudo apt-get install -y jq curl
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,96 +50,154 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: GitHubActions-Deploy-To-K8s
 
+      - name: Configure kubeconfig
+        run: |
+          aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "${{ secrets.AWS_REGION }}"
+          kubectl cluster-info
+
       - name: Extract deployment info
         id: info
         run: |
-          # Desde repository_dispatch
-          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             IMAGE_TAG="${{ github.event.client_payload.image_tag }}"
             ECR_REGISTRY="${{ github.event.client_payload.ecr_registry }}"
             REPOSITORY="${{ github.event.client_payload.repository }}"
             TRIGGERED_BY="${{ github.event.client_payload.triggered_by }}"
-            BLUE_GREEN_TAG="${{github.event.client_payload.blue_green_tag}}"
+            TARGET_SLOT="${{ github.event.client_payload.blue_green_tag }}"
           else
-            # Desde workflow_dispatch
             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
             ECR_REGISTRY="${{ github.event.inputs.ecr_registry }}"
             REPOSITORY="${{ github.event.inputs.repository }}"
             TRIGGERED_BY="${{ github.actor }}"
-            BLUE_GREEN_TAG="${{github.event.inputs.blue_green_tag}}"
+            TARGET_SLOT="${{ github.event.inputs.blue_green_tag }}"
+          fi
+
+          if [ -z "$TARGET_SLOT" ]; then
+            echo "blue_green_tag/target slot is required"
+            exit 1
           fi
 
           FULL_IMAGE="${ECR_REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"
 
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "full_image=$FULL_IMAGE" >> $GITHUB_OUTPUT
-          echo "triggered_by=$TRIGGERED_BY" >> $GITHUB_OUTPUT
-          echo "blue_green_tag=$BLUE_GREEN_TAG" >> $GITHUB_OUTPUT
+          # Read previous active slot from SSM, fallback to blue.
+          ACTIVE_SLOT=$(aws ssm get-parameter --name "$ACTIVE_SLOT_SSM_PARAM" --query 'Parameter.Value' --output text 2>/dev/null || echo "blue")
 
-          echo "Deploying image: $FULL_IMAGE"
+          if [ "$TARGET_SLOT" = "blue" ]; then
+            ROLLBACK_BLUE=0
+            ROLLBACK_GREEN=100
+            PROMOTE_BLUE=100
+            PROMOTE_GREEN=0
+            TARGET_DEPLOYMENT="app-blue"
+          else
+            ROLLBACK_BLUE=100
+            ROLLBACK_GREEN=0
+            PROMOTE_BLUE=0
+            PROMOTE_GREEN=100
+            TARGET_DEPLOYMENT="app-green"
+          fi
+
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "full_image=$FULL_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "triggered_by=$TRIGGERED_BY" >> "$GITHUB_OUTPUT"
+          echo "target_slot=$TARGET_SLOT" >> "$GITHUB_OUTPUT"
+          echo "active_slot=$ACTIVE_SLOT" >> "$GITHUB_OUTPUT"
+          echo "rollback_blue=$ROLLBACK_BLUE" >> "$GITHUB_OUTPUT"
+          echo "rollback_green=$ROLLBACK_GREEN" >> "$GITHUB_OUTPUT"
+          echo "promote_blue=$PROMOTE_BLUE" >> "$GITHUB_OUTPUT"
+          echo "promote_green=$PROMOTE_GREEN" >> "$GITHUB_OUTPUT"
+          echo "target_deployment=$TARGET_DEPLOYMENT" >> "$GITHUB_OUTPUT"
+
           echo "Triggered by: $TRIGGERED_BY"
+          echo "Target slot: $TARGET_SLOT"
+          echo "Current active slot (SSM): $ACTIVE_SLOT"
+          echo "Image pushed by app repo: $FULL_IMAGE"
 
-      - name: Phase 1 - Canary deployment (50/50)
+      - name: Ensure ingress exists
         run: |
-          cd k8s_manifests/apps/
+          kubectl get ingress "$INGRESS_NAME" -n "$NAMESPACE"
 
-          # Actualizar ingress.yaml con 50/50
-          yq eval -i '
-            .metadata.annotations."alb.ingress.kubernetes.io/actions.weighted-routing" =
-            "{\"type\":\"forward\",\"forwardConfig\":{\"targetGroups\":[{\"serviceName\":\"app-blue-service\",\"servicePort\":\"80\",\"weight\":50},{\"serviceName\":\"app-green-service\",\"servicePort\":\"80\",\"weight\":50}]}}"
-          ' ingress.yaml
-
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Deploy ${{ steps.info.outputs.image_tag }} to ${{ steps.info.outputs.blue_green_tag }} (Canary 50/50)
-
-          Triggered by: ${{ steps.info.outputs.triggered_by }}
-          Image: ${{ steps.info.outputs.full_image }}"
-          git push
-
+      - name: Phase 1 - Canary 50/50
+        run: |
+          chmod +x k8s/k8s_fixed_scripts/blue-green-updater.sh
+          bash k8s/k8s_fixed_scripts/blue-green-updater.sh "$NAMESPACE" "$INGRESS_NAME" 50 50
           echo "Waiting 60s for canary stabilization..."
           sleep 60
 
-      - name: Phase 2 - Full deployment (100%)
-        env:
-          TARGET: ${{ steps.info.outputs.blue_green_tag }}
+      - name: Health gate (app + rollout)
+        id: gate
         run: |
-          cd k8s_manifests/apps/
+          set +e
+          ALB_HOST=$(kubectl get ingress "$INGRESS_NAME" -n "$NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "ALB host: $ALB_HOST"
 
-          if [ "$TARGET" == "green" ]; then
-            WEIGHTS='{"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"app-blue-service","servicePort":"80","weight":0},{"serviceName":"app-green-service","servicePort":"80","weight":100}]}}'
-          else
-            WEIGHTS='{"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"app-blue-service","servicePort":"80","weight":100},{"serviceName":"app-green-service","servicePort":"80","weight":0}]}}'
+          # 1) Ensure target deployment is ready.
+          kubectl rollout status "deployment/${{ steps.info.outputs.target_deployment }}" -n "$NAMESPACE" --timeout=180s
+          rollout_rc=$?
+
+          # 2) Probe health endpoint on ALB.
+          ok=0
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://${ALB_HOST}/health.html")
+            echo "Probe $i/12 => HTTP $code"
+            if [ "$code" = "200" ]; then
+              ok=$((ok + 1))
+            fi
+            sleep 5
+          done
+
+          if [ $rollout_rc -eq 0 ] && [ $ok -ge 10 ]; then
+            echo "gate_result=pass" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          yq eval -i ".metadata.annotations.\"alb.ingress.kubernetes.io/actions.weighted-routing\" = \"$WEIGHTS\"" ingress.yaml
+          echo "gate_result=fail" >> "$GITHUB_OUTPUT"
+          exit 1
 
-          git add ingress.yaml
-          git commit -m "Complete deployment: 100% traffic to $TARGET
-
-          Image: ${{ steps.info.outputs.full_image }}
-          Canary successful, promoting to full traffic."
-          git push
-
-          echo "Blue-Green deployment completed!"
-          echo "Active environment: $TARGET"
-          echo "Image: ${{ steps.info.outputs.full_image }}"
-
-      - name: Create deployment summary
+      - name: Phase 2 - Promote 100% to target
+        if: steps.gate.outputs.gate_result == 'pass'
         run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Environment**: ${{ steps.info.outputs.blue_green_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: \`${{ steps.info.outputs.full_image }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by**: ${{ steps.info.outputs.triggered_by }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment Strategy**: Blue-Green Canary (50% → 100%)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Timeline" >> $GITHUB_STEP_SUMMARY
-          echo "1. Canary deployment (50/50 split)" >> $GITHUB_STEP_SUMMARY
-          echo "2. 60s stabilization period" >> $GITHUB_STEP_SUMMARY
-          echo "3. Full traffic switch (100% to ${{ steps.info.outputs.blue_green_tag }})" >> $GITHUB_STEP_SUMMARY
-      - name: Setting Active parameter to new target
-        env:
-          TARGET: ${{ steps.info.outputs.blue_green_tag }}
-        run: aws ssm pet-parameter --name "/app-python-web/active-slot" --value ${{ env.TARGET }}
+          chmod +x k8s/k8s_fixed_scripts/blue-green-updater.sh
+          bash k8s/k8s_fixed_scripts/blue-green-updater.sh \
+            "$NAMESPACE" \
+            "$INGRESS_NAME" \
+            "${{ steps.info.outputs.promote_blue }}" \
+            "${{ steps.info.outputs.promote_green }}"
+
+          aws ssm put-parameter \
+            --name "$ACTIVE_SLOT_SSM_PARAM" \
+            --type String \
+            --value "${{ steps.info.outputs.target_slot }}" \
+            --overwrite
+
+      - name: Auto rollback to previous slot
+        if: failure() && steps.gate.outputs.gate_result == 'fail'
+        run: |
+          chmod +x k8s/k8s_fixed_scripts/blue-green-updater.sh
+          bash k8s/k8s_fixed_scripts/blue-green-updater.sh \
+            "$NAMESPACE" \
+            "$INGRESS_NAME" \
+            "${{ steps.info.outputs.rollback_blue }}" \
+            "${{ steps.info.outputs.rollback_green }}"
+
+          aws ssm put-parameter \
+            --name "$ACTIVE_SLOT_SSM_PARAM" \
+            --type String \
+            --value "${{ steps.info.outputs.active_slot }}" \
+            --overwrite
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          ALB_HOST=$(kubectl get ingress "$INGRESS_NAME" -n "$NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "## Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: ${{ steps.info.outputs.triggered_by }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Requested target slot: ${{ steps.info.outputs.target_slot }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Previous active slot (SSM): ${{ steps.info.outputs.active_slot }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image (built in app repo): \`${{ steps.info.outputs.full_image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ALB URL: http://${ALB_HOST}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Strategy" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Canary 50/50" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Health gate (rollout + HTTP probes)" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Promote to 100% or rollback automático" >> "$GITHUB_STEP_SUMMARY"

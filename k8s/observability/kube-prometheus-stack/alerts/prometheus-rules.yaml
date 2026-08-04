@@ -7,6 +7,22 @@ spec:
   groups:
     - name: kubernetes.rules
       rules:
+        - alert: AppDeploymentDown
+          expr: kube_deployment_status_replicas_available{namespace="default",deployment=~"app-blue|app-green"} < 1
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Blue/Green deployment sin replicas disponibles"
+
+        - alert: AppRestartSpike
+          expr: increase(kube_pod_container_status_restarts_total{namespace="default",pod=~"app-(blue|green).*"}[10m]) > 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Reinicios anómalos en app blue/green"
+
         - alert: NodeNotReady
           expr: kube_node_status_condition{condition="Ready",status="true"} == 0
           for: 5m
