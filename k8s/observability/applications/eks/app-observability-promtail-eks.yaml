@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-observability-loki-eks
+  name: app-observability-promtail-eks
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   project: default
   destination:
@@ -10,11 +12,11 @@ spec:
     namespace: observability
   sources:
     - repoURL: https://grafana.github.io/helm-charts
-      chart: loki
-      targetRevision: 6.28.0
+      chart: promtail
+      targetRevision: 6.16.6
       helm:
         valueFiles:
-          - $values/k8s/observability/loki/values/eks.yaml
+          - $values/k8s/observability/promtail/values/eks.yaml
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
       targetRevision: HEAD
       ref: values

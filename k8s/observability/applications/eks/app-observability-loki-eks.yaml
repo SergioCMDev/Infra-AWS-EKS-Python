@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-observability-tempo-eks
+  name: app-observability-loki-eks
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   destination:
@@ -10,11 +12,11 @@ spec:
     namespace: observability
   sources:
     - repoURL: https://grafana.github.io/helm-charts
-      chart: tempo
-      targetRevision: 1.24.4
+      chart: loki
+      targetRevision: 6.28.0
       helm:
         valueFiles:
-          - $values/k8s/observability/tempo/values/eks.yaml
+          - $values/k8s/observability/loki/values/eks.yaml
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
       targetRevision: HEAD
       ref: values

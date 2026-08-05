@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OBS_APPS_DIR="$ROOT_DIR/observability/applications"
+OBS_APPS_DIR="$ROOT_DIR/observability/applications/eks"
 OBS_CONFIGMAPS_DIR="$ROOT_DIR/observability/configMaps"
 
 preflight_ebs_storage() {

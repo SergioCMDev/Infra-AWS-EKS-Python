@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-observability-promtail-eks
+  name: app-observability-tempo-eks
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   destination:
@@ -10,11 +12,11 @@ spec:
     namespace: observability
   sources:
     - repoURL: https://grafana.github.io/helm-charts
-      chart: promtail
-      targetRevision: 6.16.6
+      chart: tempo
+      targetRevision: 1.24.4
       helm:
         valueFiles:
-          - $values/k8s/observability/promtail/values/eks.yaml
+          - $values/k8s/observability/tempo/values/eks.yaml
     - repoURL: https://github.com/SergioCMDev/Infra-AWS-EKS-Python
       targetRevision: HEAD
       ref: values
