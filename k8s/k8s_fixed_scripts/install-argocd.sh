@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROLE_ARN=""
-if [[ -n "$1" ]]; then
+if [[ -n "${1:-}" ]]; then
   ROLE_ARN=$1
 fi
 

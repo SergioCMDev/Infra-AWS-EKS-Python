@@ -80,6 +80,31 @@ kubectl wait --for=condition=Established crd/appprojects.argoproj.io --timeout=1
 chmod +x "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
 bash "$K8s_FIXED_SCRIPTS_DIR/Applying-k8s-manifests.sh"
 
+read -r -p "¿Quieres obtener ahora la URL del ALB de la app? [y/N]: " SHOW_ALB_URL
+if [[ "$SHOW_ALB_URL" =~ ^([yY][eE][sS]|[yY]|[sS][iI]|[sS])$ ]]; then
+  echo "Buscando hostname del ALB en ingress del namespace default..."
+
+  APP_ALB_HOST=""
+  for i in {1..24}; do
+    APP_ALB_HOST=$(kubectl get ingress -n default -o jsonpath='{range .items[*]}{.status.loadBalancer.ingress[0].hostname}{"\n"}{end}' \
+      | grep -m1 -E '.+' || true)
+
+    if [[ -n "$APP_ALB_HOST" ]]; then
+      break
+    fi
+
+    echo "Esperando asignacion del ALB... intento $i/24"
+    sleep 10
+  done
+
+  if [[ -n "$APP_ALB_HOST" ]]; then
+    echo "URL de la app: http://$APP_ALB_HOST"
+  else
+    echo "No se pudo obtener el hostname del ALB a tiempo."
+    echo "Comando manual: kubectl get ingress -n default -o wide"
+  fi
+fi
+
 echo "Installing observability stack on EKS"
 chmod +x "$K8s_FIXED_SCRIPTS_DIR/install-observability-eks.sh"
 bash "$K8s_FIXED_SCRIPTS_DIR/install-observability-eks.sh"
